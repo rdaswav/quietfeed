@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "packVersion": 1,
+  "updated": "2026-11-13",
+  "sites": [
+    {
+      "id": "instagram",
+      "name": "Instagram",
+      "homeURL": "https://www.instagram.com/",
+      "allowedHosts": ["instagram.com", "facebook.com", "cdninstagram.com"],
+      "pathRules": [
+        { "pattern": "^/reels(/|$)", "action": "redirect", "to": "/" },
+        { "pattern": "^/explore(/|$)", "action": "redirect", "to": "/" }
+      ],
+      "hideSelectors": [
+        "a[href=\"/reels/\"]",
+        "a[href=\"/explore/\"]",
+        "a[href*=\"/reels/audio/\"]"
+      ],
+      "hideByText": [
+        { "text": "Suggested for you", "closest": "article" },
+        { "text": "Suggested posts", "closest": "article" },
+        { "text": "Suggested reels", "closest": "article" }
+      ],
+      "contentRules": [],
+      "canaries": ["nav", "main"]
+    },
+    {
+      "id": "youtube",
+      "name": "YouTube",
+      "homeURL": "https://m.youtube.com/",
+      "allowedHosts": ["youtube.com", "google.com", "youtube-nocookie.com"],
+      "pathRules": [
+        { "pattern": "^/shorts/([A-Za-z0-9_-]+)", "action": "redirect", "to": "/watch?v=$1" },
+        { "pattern": "^/shorts/?$", "action": "redirect", "to": "/" }
+      ],
+      "hideSelectors": [
+        "ytm-reel-shelf-renderer",
+        "ytm-shorts-lockup-view-model",
+        "grid-shelf-view-model"
+      ],
+      "hideByText": [
+        { "text": "Shorts", "within": "ytm-pivot-bar-item-renderer", "closest": "ytm-pivot-bar-item-renderer" }
+      ],
+      "contentRules": [],
+      "canaries": ["ytm-pivot-bar-renderer"]
+    },
+    {
+      "id": "facebook",
+      "name": "Facebook",
+      "homeURL": "https://m.facebook.com/",
+      "allowedHosts": ["facebook.com", "fbcdn.net", "google.com"],
+      "pathRules": [
+        { "pattern": "^/reels?(/|$)", "action": "redirect", "to": "/" },
+        { "pattern": "^/watch(/|$)", "action": "redirect", "to": "/" }
+      ],
+      "hideSelectors": [
+        "a[href*=\"/reel/\"]",
+        "a[aria-label=\"Reels\"]",
+        "a[aria-label=\"Video\"]"
+      ],
+      "hideByText": [
+        { "text": "Reels", "closest": "div[role=\"article\"]" },
+        { "text": "Reels and short videos", "closest": "div[role=\"article\"]" },
+        { "text": "Suggested for you", "closest": "div[role=\"article\"]" },
+        { "text": "People you may know", "closest": "div[role=\"article\"]" }
+      ],
+      "contentRules": [],
+      "canaries": ["#screen-root", "[role=\"main\"]"]
+    }
+  ]
+}
