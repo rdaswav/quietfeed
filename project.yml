@@ -28,6 +28,9 @@ targets:
       properties:
         CFBundleDisplayName: Quiet Feed
         UILaunchScreen: {}
+        NSCameraUsageDescription: Quiet Feed lets the sites you use take photos to post.
+        NSMicrophoneUsageDescription: Quiet Feed lets the sites you use record audio and video to post.
+        NSPhotoLibraryUsageDescription: Quiet Feed lets the sites you use attach photos from your library.
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
     settings:

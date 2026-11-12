@@ -62,13 +62,14 @@ struct SiteWebView: UIViewRepresentable {
     let onHealth: (String, HealthReport) -> Void
 
     func makeCoordinator() -> WebCoordinator {
-        WebCoordinator(siteId: site.id, onHealth: onHealth)
+        WebCoordinator(site: site, onHealth: onHealth)
     }
 
     func makeUIView(context: Context) -> WKWebView {
         let webView = SiteWebViewFactory.makeWebView(
             site: site, runtimeSource: runtimeSource, messageHandler: context.coordinator)
         webView.navigationDelegate = context.coordinator
+        webView.uiDelegate = context.coordinator
         webView.backgroundColor = UIColor(Theme.bg)
         webView.isOpaque = false
         if let url = URL(string: site.homeURL) {
