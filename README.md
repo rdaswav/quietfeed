@@ -46,7 +46,7 @@ xcodegen generate
 ./scripts/verify.sh
 ```
 
-`verify.sh` runs the Swift package tests, the JavaScript tests against synthetic pages, the rule pack validator and a simulator build. To run on your own iPhone, copy `Local.xcconfig.example` to `Local.xcconfig` and set your development team. Shielding the official apps needs the Family Controls capability, which requires a paid Apple Developer account and a real device.
+`verify.sh` runs the Swift package tests, the JavaScript tests against synthetic pages, the rule pack validator and a simulator build. To run on your own iPhone, copy `Local.xcconfig.example` to `Local.xcconfig` (git-ignored, picked up automatically through `Config/Base.xcconfig`) and set your development team. Shielding the official apps needs the Family Controls capability, which requires a paid Apple Developer account and a real device.
 
 ## Design
 

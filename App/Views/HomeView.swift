@@ -31,12 +31,6 @@ struct HomeView: View {
                 }
             }
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Text("Quiet Feed")
-                        .font(Theme.titleFont)
-                        .foregroundStyle(Theme.text)
-                        .accessibilityAddTraits(.isHeader)
-                }
                 ToolbarItem(placement: .topBarTrailing) {
                     // Settings arrive in T12.
                     Image(systemName: "gearshape")
@@ -44,6 +38,8 @@ struct HomeView: View {
                         .accessibilityLabel("Settings")
                 }
             }
+            .navigationTitle("Quiet Feed")
+            .navigationBarTitleDisplayMode(.large)
             .toolbarBackground(Theme.bg, for: .navigationBar)
         }
         .tint(Theme.accent)

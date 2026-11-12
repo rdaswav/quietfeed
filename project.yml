@@ -8,8 +8,8 @@ settings:
     SWIFT_VERSION: "5.0"
     IPHONEOS_DEPLOYMENT_TARGET: "18.0"
 configFiles:
-  Debug: Local.xcconfig.example
-  Release: Local.xcconfig.example
+  Debug: Config/Base.xcconfig
+  Release: Config/Base.xcconfig
 packages:
   QuietFeedCore:
     path: Packages/QuietFeedCore

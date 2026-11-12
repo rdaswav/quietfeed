@@ -1,0 +1,4 @@
+// Tracked. Optionally pulls in your private, git-ignored Local.xcconfig
+// (copy Local.xcconfig.example to Local.xcconfig and set DEVELOPMENT_TEAM).
+// The "?" makes the include optional, so builds work without it.
+#include? "../Local.xcconfig"
