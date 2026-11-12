@@ -26,7 +26,9 @@ struct HomeView: View {
             }
             .background(Theme.bg)
             .navigationDestination(for: String.self) { id in
-                BrowserPlaceholder(name: model.sites.first { $0.id == id }?.name ?? id)
+                if let site = model.sites.first(where: { $0.id == id }) {
+                    BrowserView(site: site, model: model)
+                }
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -70,21 +72,6 @@ private struct SiteTile: View {
             RoundedRectangle(cornerRadius: Theme.cardRadius)
                 .stroke(Theme.line, lineWidth: Theme.hairline)
         )
-    }
-}
-
-/// Replaced by the real browser screen in T08.
-private struct BrowserPlaceholder: View {
-    let name: String
-
-    var body: some View {
-        Text(name)
-            .font(Theme.bodyFont)
-            .foregroundStyle(Theme.textMuted)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Theme.bg)
-            .navigationTitle(name)
-            .navigationBarTitleDisplayMode(.inline)
     }
 }
 

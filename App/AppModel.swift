@@ -6,11 +6,17 @@ import QuietFeedCore
 final class AppModel {
     private(set) var pack: RulePack?
     private(set) var loadError: String?
+    /// Latest health report per site id, from the injected runtime.
+    private(set) var healthReports: [String: HealthReport] = [:]
 
     var sites: [SiteRules] { pack?.sites ?? [] }
 
     init(bundle: Bundle = .main) {
         loadBundledPack(from: bundle)
+    }
+
+    func recordHealth(_ report: HealthReport, for siteId: String) {
+        healthReports[siteId] = report
     }
 
     private func loadBundledPack(from bundle: Bundle) {
