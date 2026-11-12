@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+<head><title>YouTube home (synthetic fixture)</title></head>
+<body>
+  <ytm-app>
+    <ytm-browse>
+      <ytm-rich-section-renderer>
+        <ytm-reel-shelf-renderer id="shorts-shelf">
+          <h2>Shorts</h2>
+          <ytm-shorts-lockup-view-model id="shorts-item">Short clip</ytm-shorts-lockup-view-model>
+        </ytm-reel-shelf-renderer>
+      </ytm-rich-section-renderer>
+      <ytm-rich-item-renderer>
+        <ytm-video-with-context-renderer id="normal-video">
+          <a href="/watch?v=abc123"><h3>An ordinary video</h3></a>
+        </ytm-video-with-context-renderer>
+      </ytm-rich-item-renderer>
+      <ytm-rich-item-renderer>
+        <ytm-video-with-context-renderer id="normal-video-2">
+          <a href="/watch?v=def456"><h3>Another ordinary video</h3></a>
+        </ytm-video-with-context-renderer>
+      </ytm-rich-item-renderer>
+    </ytm-browse>
+    <ytm-pivot-bar-renderer id="canary">
+      <ytm-pivot-bar-item-renderer id="pivot-home"><div><span>Home</span></div></ytm-pivot-bar-item-renderer>
+      <ytm-pivot-bar-item-renderer id="pivot-shorts"><div><span>Shorts</span></div></ytm-pivot-bar-item-renderer>
+      <ytm-pivot-bar-item-renderer id="pivot-subs"><div><span>Subscriptions</span></div></ytm-pivot-bar-item-renderer>
+    </ytm-pivot-bar-renderer>
+  </ytm-app>
+</body>
+</html>

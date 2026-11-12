@@ -21,6 +21,8 @@ targets:
       - App
       - path: rules/rulepack.json
         buildPhase: resources
+      - path: web/runtime.js
+        buildPhase: resources
     info:
       path: App/Info.plist
       properties:
