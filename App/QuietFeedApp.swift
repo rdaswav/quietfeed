@@ -3,9 +3,11 @@ import QuietFeedCore
 
 @main
 struct QuietFeedApp: App {
+    @State private var model = AppModel()
+
     var body: some Scene {
         WindowGroup {
-            Text("Quiet Feed")
+            HomeView(model: model)
         }
     }
 }
