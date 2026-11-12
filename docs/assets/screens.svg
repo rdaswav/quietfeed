@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" width="1200" height="760" role="img" aria-label="Quiet Feed screens: Home, Browser with time remaining, and the limit reached screen">
+  <style>
+    :root { --canvas:#E9E7E0; --bg:#F6F5F1; --surface:#FFFFFF; --line:#E3E1DA; --text:#1B1C19; --muted:#6C6E66; --accent:#5E7A64; --warn:#B07A2A; --onaccent:#F6F5F1; }
+    @media (prefers-color-scheme: dark) {
+      :root { --canvas:#0B0C0A; --bg:#121311; --surface:#1C1D1A; --line:#2C2E29; --text:#ECEBE6; --muted:#9A9C93; --accent:#8FB096; --warn:#D9A65A; --onaccent:#121311; }
+    }
+    text { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif; fill: var(--text); }
+    .muted { fill: var(--muted); }
+    .warn { fill: var(--warn); }
+    .title { font-size: 24px; font-weight: 600; }
+    .name { font-size: 17px; font-weight: 600; }
+    .small { font-size: 13px; }
+    .mono { font-size: 17px; font-variant-numeric: tabular-nums; }
+    .cap { font-size: 15px; }
+    .phone { fill: var(--bg); stroke: var(--line); stroke-width: 3; }
+    .tile { fill: var(--surface); stroke: var(--line); stroke-width: 1; }
+    .track { fill: var(--line); }
+    .bar { fill: var(--accent); }
+    .skel { fill: var(--line); }
+  </style>
+  <rect width="1200" height="760" rx="24" fill="var(--canvas)"/>
+
+  <!-- Phone 1: Home -->
+  <rect class="phone" x="40" y="40" width="320" height="640" rx="44"/>
+  <text class="title" x="68" y="110">Quiet Feed</text>
+  <circle cx="324" cy="102" r="11" fill="none" stroke="var(--muted)" stroke-width="2"/>
+  <circle cx="324" cy="102" r="3" fill="var(--muted)"/>
+  <rect class="tile" x="60" y="140" width="280" height="76" rx="14"/>
+  <text class="name" x="78" y="171">Instagram</text>
+  <text class="mono" x="322" y="171" text-anchor="end">14 min</text>
+  <rect class="track" x="78" y="188" width="244" height="3" rx="1.5"/>
+  <rect class="bar" x="78" y="188" width="171" height="3" rx="1.5"/>
+  <rect class="tile" x="60" y="228" width="280" height="76" rx="14"/>
+  <text class="name" x="78" y="259">YouTube</text>
+  <text class="mono" x="322" y="259" text-anchor="end">20 min</text>
+  <rect class="track" x="78" y="276" width="244" height="3" rx="1.5"/>
+  <rect class="bar" x="78" y="276" width="244" height="3" rx="1.5"/>
+  <rect class="tile" x="60" y="316" width="280" height="76" rx="14"/>
+  <text class="name" x="78" y="347">Facebook</text>
+  <text class="mono muted" x="322" y="347" text-anchor="end">Done</text>
+  <rect class="track" x="78" y="364" width="244" height="3" rx="1.5"/>
+  <text class="small muted" x="200" y="640" text-anchor="middle">Post Mode</text>
+
+  <!-- Phone 2: Browser -->
+  <rect class="phone" x="440" y="40" width="320" height="640" rx="44"/>
+  <path d="M 440 120 H 760" stroke="var(--line)" stroke-width="1"/>
+  <text class="name" x="468" y="97">&#8249;</text>
+  <text class="name" x="492" y="97">Instagram</text>
+  <text class="mono warn" x="690" y="97" text-anchor="end">1:42</text>
+  <text class="name muted" x="724" y="97" text-anchor="end">&#183;&#183;&#183;</text>
+  <circle cx="484" cy="168" r="14" class="skel"/>
+  <rect class="skel" x="508" y="156" width="110" height="10" rx="5"/>
+  <rect class="skel" x="508" y="174" width="70" height="8" rx="4"/>
+  <rect class="skel" x="462" y="198" width="276" height="190" rx="10"/>
+  <rect class="skel" x="462" y="402" width="200" height="10" rx="5"/>
+  <rect class="skel" x="462" y="422" width="140" height="8" rx="4"/>
+  <circle cx="484" cy="476" r="14" class="skel"/>
+  <rect class="skel" x="508" y="464" width="110" height="10" rx="5"/>
+  <rect class="skel" x="508" y="482" width="70" height="8" rx="4"/>
+  <rect class="skel" x="462" y="506" width="276" height="90" rx="10"/>
+  <rect x="462" y="610" width="276" height="44" rx="10" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="5 5"/>
+  <text class="small muted" x="600" y="637" text-anchor="middle">Reels, Explore and suggested posts hidden</text>
+
+  <!-- Phone 3: Limit reached -->
+  <rect class="phone" x="840" y="40" width="320" height="640" rx="44"/>
+  <text class="title" x="1000" y="290" text-anchor="middle">That's today's</text>
+  <text class="title" x="1000" y="322" text-anchor="middle">Instagram.</text>
+  <text class="cap muted" x="1000" y="360" text-anchor="middle">20 minutes used.</text>
+  <rect x="900" y="400" width="200" height="48" rx="10" fill="var(--accent)"/>
+  <text class="name" x="1000" y="430" text-anchor="middle" style="fill: var(--onaccent)">Back to Home</text>
+  <text class="cap muted" x="1000" y="486" text-anchor="middle">Add 5 minutes</text>
+  <text class="small muted" x="1000" y="508" text-anchor="middle">1 of 2 extensions left</text>
+
+  <!-- Captions -->
+  <text class="cap muted" x="200" y="724" text-anchor="middle">Home: time left per site</text>
+  <text class="cap muted" x="600" y="724" text-anchor="middle">Browser: the feed, minus the rest</text>
+  <text class="cap muted" x="1000" y="724" text-anchor="middle">Limit reached: calm, not guilt</text>
+</svg>
