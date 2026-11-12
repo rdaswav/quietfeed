@@ -1,0 +1,54 @@
+name: QuietFeed
+options:
+  bundleIdPrefix: dev.quietfeed
+  deploymentTarget:
+    iOS: "18.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    IPHONEOS_DEPLOYMENT_TARGET: "18.0"
+configFiles:
+  Debug: Local.xcconfig.example
+  Release: Local.xcconfig.example
+packages:
+  QuietFeedCore:
+    path: Packages/QuietFeedCore
+targets:
+  QuietFeed:
+    type: application
+    platform: iOS
+    sources:
+      - App
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: Quiet Feed
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.quietfeed.app
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        GENERATE_INFOPLIST_FILE: NO
+    dependencies:
+      - package: QuietFeedCore
+  AppTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - AppTests
+    dependencies:
+      - target: QuietFeed
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.quietfeed.app.tests
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  QuietFeed:
+    build:
+      targets:
+        QuietFeed: all
+    test:
+      targets:
+        - AppTests
