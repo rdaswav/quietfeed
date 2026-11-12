@@ -59,6 +59,7 @@ enum SiteWebViewFactory {
 struct SiteWebView: UIViewRepresentable {
     let site: SiteRules
     let runtimeSource: String
+    let controller: BrowserController?
     let onHealth: (String, HealthReport) -> Void
 
     func makeCoordinator() -> WebCoordinator {
@@ -72,8 +73,15 @@ struct SiteWebView: UIViewRepresentable {
         webView.uiDelegate = context.coordinator
         webView.backgroundColor = UIColor(Theme.bg)
         webView.isOpaque = false
-        if let url = URL(string: site.homeURL) {
-            webView.load(URLRequest(url: url))
+        controller?.webView = webView
+        let homeURL = URL(string: site.homeURL)
+        let site = site
+        Task { @MainActor in
+            // Content rules must be attached before the first load.
+            if let list = await ContentRuleCompiler.compile(site: site) {
+                webView.configuration.userContentController.add(list)
+            }
+            if let homeURL { webView.load(URLRequest(url: homeURL)) }
         }
         return webView
     }
