@@ -22,6 +22,9 @@ protocol ShieldController: AnyObject {
     /// Shield the saved selection.
     func apply()
     func clear()
+    /// Records whether the user wants the shield, where the monitor extension can see it, and
+    /// starts or stops the daily re-shield schedule.
+    func setEnabled(_ on: Bool)
     /// Unshield now and re-shield after `minutes`.
     func startPostMode(minutes: Int) throws
     var postModeEndsAt: Date? { get }
@@ -74,6 +77,9 @@ final class FakeShieldController: ShieldController {
     func requestAuthorization() async throws {
         authorization = nextAuthorization
     }
+
+    private(set) var enabled = false
+    func setEnabled(_ on: Bool) { enabled = on }
 
     func apply() { isShieldApplied = true }
     func clear() { isShieldApplied = false }

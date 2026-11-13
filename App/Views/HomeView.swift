@@ -3,6 +3,8 @@ import QuietFeedCore
 
 struct HomeView: View {
     let model: AppModel
+    @State private var postGate = false
+    @State private var postFailed = false
 
     var body: some View {
         NavigationStack {
@@ -22,6 +24,7 @@ struct HomeView: View {
                         }
                         .buttonStyle(.plain)
                     }
+                    postModeRow
                 }
                 .padding(.horizontal, Theme.gutter)
                 .padding(.top, Theme.tileGap)
@@ -44,8 +47,50 @@ struct HomeView: View {
                 }
             }
             .toolbarBackground(Theme.bg, for: .navigationBar)
+            .sheet(isPresented: $postGate) {
+                FrictionGate(
+                    title: "Open the official apps for \(AppModel.postModeMinutes) minutes",
+                    countdownSeconds: model.frictionCountdownSeconds,
+                    phrase: model.limits.frictionPhrase,
+                    onConfirm: {
+                        postGate = false
+                        postFailed = !model.startPostMode()
+                    },
+                    onCancel: { postGate = false }
+                )
+            }
         }
         .tint(Theme.accent)
+    }
+}
+
+extension HomeView {
+    /// Only shown while the shield is on. Shows when Post Mode ends, or the button to start it.
+    @ViewBuilder
+    var postModeRow: some View {
+        if model.shieldEnabled, model.shieldAuthorization == .approved {
+            if let ends = model.postModeEndsAt {
+                Text("Post Mode until \(ends.formatted(date: .omitted, time: .shortened))")
+                    .font(Theme.captionFont)
+                    .foregroundStyle(Theme.textMuted)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 8)
+            } else {
+                VStack(spacing: 4) {
+                    Button("Post Mode") { postGate = true }
+                        .font(Theme.captionFont)
+                        .foregroundStyle(Theme.textMuted)
+                        .frame(minHeight: 44)
+                    if postFailed {
+                        Text("Post Mode could not start, so the shield stays on.")
+                            .font(Theme.captionFont)
+                            .foregroundStyle(Theme.warn)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.top, 8)
+            }
+        }
     }
 }
 

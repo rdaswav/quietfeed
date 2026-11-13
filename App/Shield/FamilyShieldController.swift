@@ -1,39 +1,16 @@
-#if canImport(FamilyControls) && canImport(ManagedSettings)
+#if canImport(FamilyControls) && canImport(ManagedSettings) && canImport(DeviceActivity)
 import Foundation
 import FamilyControls
 import ManagedSettings
-
-extension ManagedSettingsStore.Name {
-    static let quietFeed = ManagedSettingsStore.Name("quietFeed")
-}
-
-enum ShieldGroup {
-    static let id = "group.dev.quietfeed.app"
-}
-
-extension FamilyActivitySelection {
-    var itemCount: Int { applicationTokens.count + categoryTokens.count + webDomainTokens.count }
-}
+import DeviceActivity
 
 /// The real shield. Needs the Family Controls entitlement and a real device.
-/// Post Mode scheduling (DeviceActivity) arrives with the monitor extension in T19.
 final class FamilyShieldController: ShieldController {
     private(set) var selection: FamilyActivitySelection
-    private let store = ManagedSettingsStore(named: .quietFeed)
-    private let selectionURL: URL
-    private let defaults: UserDefaults
 
     init() {
-        let base = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: ShieldGroup.id)
-            ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        selectionURL = base.appendingPathComponent("shield-selection.plist")
-        defaults = UserDefaults(suiteName: ShieldGroup.id) ?? .standard
-        if let data = try? Data(contentsOf: selectionURL),
-           let saved = try? PropertyListDecoder().decode(FamilyActivitySelection.self, from: data) {
-            selection = saved
-        } else {
-            selection = FamilyActivitySelection()
-        }
+        selection = ShieldShared.loadSelection()
+        if ShieldShared.enabled { scheduleDaily() }
     }
 
     var authorization: ShieldAuthorization {
@@ -50,39 +27,53 @@ final class FamilyShieldController: ShieldController {
 
     var hasSelection: Bool { selection.itemCount > 0 }
     var selectionCount: Int { selection.itemCount }
-
-    var isShieldApplied: Bool {
-        store.shield.applications != nil
-            || store.shield.applicationCategories != nil
-            || store.shield.webDomains != nil
-    }
+    var isShieldApplied: Bool { ShieldShared.isShieldApplied }
 
     /// Saves a new choice where the monitor extension can read it, and updates the shield if it is on.
     func commit(_ new: FamilyActivitySelection) {
         selection = new
-        if let data = try? PropertyListEncoder().encode(new) {
-            try? data.write(to: selectionURL, options: .atomic)
-        }
+        ShieldShared.saveSelection(new)
         if isShieldApplied { apply() }
     }
 
-    func apply() {
-        store.shield.applications = selection.applicationTokens.isEmpty ? nil : selection.applicationTokens
-        store.shield.applicationCategories = selection.categoryTokens.isEmpty
-            ? nil : .specific(selection.categoryTokens)
-        store.shield.webDomains = selection.webDomainTokens.isEmpty ? nil : selection.webDomainTokens
+    func apply() { ShieldShared.applyShield(selection) }
+
+    func clear() { ShieldShared.clearShield() }
+
+    func setEnabled(_ on: Bool) {
+        ShieldShared.enabled = on
+        if on {
+            scheduleDaily()
+        } else {
+            DeviceActivityCenter().stopMonitoring([.daily, .postMode])
+            ShieldShared.postModeEndsAt = nil
+        }
     }
 
-    func clear() {
-        store.clearAllSettings()
-    }
+    var postModeEndsAt: Date? { ShieldShared.postModeEndsAt }
 
+    /// Schedules the re-shield first. Only if that works is the shield lifted, so a failure leaves it up.
     func startPostMode(minutes: Int) throws {
-        throw ShieldError.unavailable
+        let length = max(minutes, ShieldShared.minimumPostModeMinutes)
+        let now = Date()
+        let end = now.addingTimeInterval(TimeInterval(length * 60))
+        let parts: Set<Calendar.Component> = [.year, .month, .day, .hour, .minute, .second]
+        let schedule = DeviceActivitySchedule(
+            intervalStart: Calendar.current.dateComponents(parts, from: now),
+            intervalEnd: Calendar.current.dateComponents(parts, from: end),
+            repeats: false)
+        try DeviceActivityCenter().startMonitoring(.postMode, during: schedule)
+        ShieldShared.postModeEndsAt = end
+        clear()
     }
 
-    var postModeEndsAt: Date? {
-        defaults.object(forKey: "postMode.endsAt") as? Date
+    /// Re-applies the shield every day at 04:00 even if the app was never opened.
+    private func scheduleDaily() {
+        let schedule = DeviceActivitySchedule(
+            intervalStart: DateComponents(hour: 4, minute: 0),
+            intervalEnd: DateComponents(hour: 23, minute: 59),
+            repeats: true)
+        try? DeviceActivityCenter().startMonitoring(.daily, during: schedule)
     }
 }
 #endif

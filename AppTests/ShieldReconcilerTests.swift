@@ -113,3 +113,75 @@ final class ShieldModelTests: XCTestCase {
         XCTAssertTrue(s.isShieldApplied)
     }
 }
+
+final class PostModeModelTests: XCTestCase {
+    private var dir: URL!
+
+    override func setUp() {
+        dir = FileManager.default.temporaryDirectory.appendingPathComponent("pm-\(UUID().uuidString)")
+    }
+
+    override func tearDown() {
+        try? FileManager.default.removeItem(at: dir)
+    }
+
+    private func makeModel(_ shield: ShieldController) -> AppModel {
+        AppModel(
+            defaults: UserDefaults(suiteName: "pm-\(UUID().uuidString)")!,
+            cacheURL: dir.appendingPathComponent("c.json"),
+            usageURL: dir.appendingPathComponent("u.json"),
+            limitsURL: dir.appendingPathComponent("l.json"),
+            shield: shield)
+    }
+
+    func testPostModeLiftsTheShieldAndShowsAnEndTime() {
+        let s = FakeShieldController(authorization: .approved, selectionCount: 2)
+        let model = makeModel(s)
+        model.setShieldEnabled(true)
+        XCTAssertTrue(s.isShieldApplied)
+        XCTAssertNil(model.postModeEndsAt)
+        XCTAssertTrue(model.startPostMode())
+        XCTAssertFalse(s.isShieldApplied)
+        let ends = try! XCTUnwrap(model.postModeEndsAt)
+        XCTAssertEqual(ends.timeIntervalSinceNow, Double(AppModel.postModeMinutes * 60), accuracy: 5)
+    }
+
+    func testForegroundDuringPostModeLeavesTheShieldDown() {
+        let s = FakeShieldController(authorization: .approved, selectionCount: 2)
+        let model = makeModel(s)
+        model.setShieldEnabled(true)
+        model.startPostMode()
+        XCTAssertEqual(model.reconcileShield(), .none)
+        XCTAssertFalse(s.isShieldApplied)
+    }
+
+    func testAFailedPostModeKeepsTheShieldUp() {
+        let s = ThrowingShield()
+        let model = makeModel(s)
+        model.setShieldEnabled(true)
+        XCTAssertFalse(model.startPostMode())
+        XCTAssertTrue(s.isShieldApplied)
+    }
+
+    func testTurningTheShieldOffTellsTheController() {
+        let s = FakeShieldController(authorization: .approved, selectionCount: 1)
+        let model = makeModel(s)
+        model.setShieldEnabled(true)
+        XCTAssertTrue(s.enabled)
+        model.setShieldEnabled(false)
+        XCTAssertFalse(s.enabled)
+    }
+}
+
+private final class ThrowingShield: ShieldController {
+    var authorization: ShieldAuthorization { .approved }
+    func requestAuthorization() async throws {}
+    var hasSelection: Bool { true }
+    var selectionCount: Int { 1 }
+    private(set) var isShieldApplied = false
+    func apply() { isShieldApplied = true }
+    func clear() { isShieldApplied = false }
+    func setEnabled(_ on: Bool) {}
+    func startPostMode(minutes: Int) throws { throw ShieldError.unavailable }
+    var postModeEndsAt: Date? { nil }
+}

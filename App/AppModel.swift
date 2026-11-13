@@ -184,7 +184,29 @@ final class AppModel {
     func setShieldEnabled(_ on: Bool) {
         shieldEnabled = on
         defaults.set(on, forKey: Self.shieldEnabledKey)
+        shield.setEnabled(on)
         reconcileShield()
+    }
+
+    static let postModeMinutes = 15
+
+    var postModeEndsAt: Date? {
+        _ = shieldVersion
+        guard let ends = shield.postModeEndsAt, ends > Date() else { return nil }
+        return ends
+    }
+
+    /// Lifts the shield for `postModeMinutes`. The caller shows the friction gate first.
+    /// Returns false when it could not be scheduled, in which case the shield stays up.
+    @discardableResult
+    func startPostMode() -> Bool {
+        defer { shieldVersion += 1 }
+        do {
+            try shield.startPostMode(minutes: Self.postModeMinutes)
+            return true
+        } catch {
+            return false
+        }
     }
 
     /// Called when the app returns to the foreground, and after any shield change.

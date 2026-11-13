@@ -49,6 +49,30 @@ targets:
         GENERATE_INFOPLIST_FILE: NO
     dependencies:
       - package: QuietFeedCore
+      - target: QuietFeedMonitor
+  QuietFeedMonitor:
+    type: app-extension
+    platform: iOS
+    sources:
+      - Monitor
+      - App/Shield/ShieldShared.swift
+    info:
+      path: Monitor/Info.plist
+      properties:
+        CFBundleDisplayName: Quiet Feed Monitor
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.deviceactivity.monitor-extension
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).QuietFeedMonitor
+    entitlements:
+      path: Monitor/QuietFeedMonitor.entitlements
+      properties:
+        com.apple.developer.family-controls: true
+        com.apple.security.application-groups:
+          - group.dev.quietfeed.app
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.quietfeed.app.monitor
+        GENERATE_INFOPLIST_FILE: NO
   AppTests:
     type: bundle.unit-test
     platform: iOS
