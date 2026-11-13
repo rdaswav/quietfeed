@@ -71,4 +71,4 @@ The logo is a sage rounded square with a single flat line: a feed with nothing l
 
 ## Licence
 
-To be added before the repository is made public.
+[MIT](LICENSE). The Instagram, YouTube and Facebook names belong to their owners.
