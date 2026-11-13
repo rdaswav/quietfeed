@@ -32,6 +32,8 @@ final class AppModel {
     private(set) var shieldVersion = 0
     /// Whether the user wants the official apps shielded. Needs Screen Time access and a chosen set of apps.
     private(set) var shieldEnabled: Bool
+    /// True until the first-run pages have been finished or skipped.
+    private(set) var showOnboarding: Bool
 
     var sites: [SiteRules] { pack?.sites ?? [] }
 
@@ -49,6 +51,7 @@ final class AppModel {
     @ObservationIgnored private let defaults: UserDefaults
     @ObservationIgnored let shield: ShieldController
     private static let shieldEnabledKey = "shield.enabled"
+    private static let onboardingKey = "onboarding.done"
     private static let serverURLKey = "rules.serverURL"
     private static let lastAttemptKey = "rules.lastAttempt"
 
@@ -65,6 +68,12 @@ final class AppModel {
         self.defaults = defaults
         self.shield = shield ?? Self.makeShield()
         self.shieldEnabled = defaults.bool(forKey: Self.shieldEnabledKey)
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-qfResetOnboarding") {
+            defaults.removeObject(forKey: Self.onboardingKey)
+        }
+        #endif
+        self.showOnboarding = !defaults.bool(forKey: Self.onboardingKey)
         self.limitsStore = JSONFileStore(url: limitsURL ?? Self.supportURL("limits.json"))
         self.limits = limitsStore.load(LimitSettings.self) ?? LimitSettings()
         self.ledger = UsageLedger(store: JSONFileStore(url: usageURL ?? Self.supportURL("usage.json")), clock: clock)
@@ -152,6 +161,13 @@ final class AppModel {
     private static func supportURL(_ name: String) -> URL {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent(name)
+    }
+
+    // MARK: Onboarding
+
+    func completeOnboarding() {
+        defaults.set(true, forKey: Self.onboardingKey)
+        showOnboarding = false
     }
 
     // MARK: Shield

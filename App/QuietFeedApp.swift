@@ -11,7 +11,13 @@ struct QuietFeedApp: App {
 
     var body: some Scene {
         WindowGroup {
-            HomeView(model: model)
+            Group {
+                if model.showOnboarding {
+                    OnboardingView(model: model)
+                } else {
+                    HomeView(model: model)
+                }
+            }
                 .task { if !Self.isRunningTests { await model.refreshRules() } }
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active, !Self.isRunningTests {
