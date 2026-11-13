@@ -19,7 +19,7 @@ REMOTE_DIR="${QF_REMOTE_DIR:-/volume1/docker/quietfeed/rules}"
 node scripts/validate-rules.mjs rules/rulepack.json
 
 # 2. Push.
-PUSH="tar -C rules -cf - rulepack.json | ssh $HOST \"mkdir -p $REMOTE_DIR && tar -C $REMOTE_DIR -xf -\""
+PUSH="COPYFILE_DISABLE=1 tar -C rules -cf - rulepack.json | ssh $HOST \"mkdir -p $REMOTE_DIR && tar -C $REMOTE_DIR -xf -\""
 
 if [[ $DRY_RUN -eq 1 ]]; then
   echo "dry run, nothing was sent:"

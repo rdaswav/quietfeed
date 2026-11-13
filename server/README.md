@@ -19,7 +19,7 @@ The pack is declarative JSON only, never code, because it travels over plain HTT
 
    ```
    ssh nas "mkdir -p /volume1/docker/quietfeed/rules"
-   tar -C server -cf - nginx.conf | ssh nas "tar -C /volume1/docker/quietfeed -xf -"
+   COPYFILE_DISABLE=1 tar -C server -cf - nginx.conf | ssh nas "tar -C /volume1/docker/quietfeed -xf -"
    ```
 
 3. Create the container:
