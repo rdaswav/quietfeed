@@ -24,6 +24,10 @@ final class AppModel {
     private(set) var ruleStatus: RuleStatus?
     private(set) var isChecking = false
     var serverURLText: String
+    /// Limit and friction settings. Persistence arrives in T17.
+    var limits = LimitSettings()
+    /// Bumped whenever usage changes so views that read budget state refresh.
+    private(set) var usageVersion = 0
 
     var sites: [SiteRules] { pack?.sites ?? [] }
 
@@ -35,6 +39,8 @@ final class AppModel {
     }
 
     @ObservationIgnored private var store: RuleStore?
+    @ObservationIgnored let ledger: UsageLedger
+    @ObservationIgnored private var ticksSinceFlush = 0
     @ObservationIgnored private let defaults: UserDefaults
     private static let serverURLKey = "rules.serverURL"
     private static let lastAttemptKey = "rules.lastAttempt"
@@ -43,9 +49,12 @@ final class AppModel {
         bundle: Bundle = .main,
         defaults: UserDefaults = .standard,
         cacheURL: URL? = nil,
+        usageURL: URL? = nil,
+        clock: Clock = .system,
         fetcher: RuleFetching = URLSessionRuleFetcher()
     ) {
         self.defaults = defaults
+        self.ledger = UsageLedger(store: JSONFileStore(url: usageURL ?? Self.supportURL("usage.json")), clock: clock)
         let savedURL = defaults.string(forKey: Self.serverURLKey)
         self.serverURLText = savedURL ?? ""
 
@@ -125,8 +134,82 @@ final class AppModel {
                                 lastChecked: s.lastFetchAt, lastError: s.lastError)
     }
 
-    private static func defaultCacheURL() -> URL {
-        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        return base.appendingPathComponent("rulepack.cache.json")
+    private static func defaultCacheURL() -> URL { supportURL("rulepack.cache.json") }
+
+    private static func supportURL(_ name: String) -> URL {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent(name)
+    }
+
+    // MARK: Limits
+
+    static let flushEverySeconds = 15
+    static let filterPauseSeconds = 5 * 60
+
+    var engine: BudgetEngine { BudgetEngine(settings: limits) }
+
+    func budgetState(for siteId: String) -> BudgetEngine.State {
+        _ = usageVersion
+        return engine.state(site: siteId, ledger: ledger)
+    }
+
+    func allowedSeconds(for siteId: String) -> Int? {
+        _ = usageVersion
+        return engine.allowedSeconds(site: siteId, extensionsUsed: ledger.extensions(site: siteId))
+    }
+
+    func extensionsLeft(for siteId: String) -> Int {
+        _ = usageVersion
+        return max(0, limits.maxExtensionsPerDay - ledger.extensions(site: siteId))
+    }
+
+    func canPauseFilters(for siteId: String) -> Bool {
+        _ = usageVersion
+        return engine.canPauseFilters(pausesUsed: ledger.filterPauses(site: siteId))
+    }
+
+    /// Counts one second of use, flushing to disk every 15 seconds.
+    func tick(siteId: String) {
+        ledger.addSeconds(1, site: siteId)
+        ticksSinceFlush += 1
+        if ticksSinceFlush >= Self.flushEverySeconds { flushUsage() }
+        usageVersion += 1
+    }
+
+    func flushUsage() {
+        ticksSinceFlush = 0
+        ledger.flush()
+    }
+
+    func grantExtension(siteId: String) {
+        ledger.recordExtension(site: siteId)
+        usageVersion += 1
+    }
+
+    func recordFilterPause(siteId: String) {
+        ledger.recordFilterPause(site: siteId)
+        usageVersion += 1
+    }
+
+    /// The friction countdown. `-qfFastFriction` shortens it to 2 seconds in DEBUG builds only.
+    var frictionCountdownSeconds: Int {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-qfFastFriction") { return 2 }
+        #endif
+        return limits.frictionCountdownSeconds
+    }
+}
+
+/// Time display helpers.
+enum TimeText {
+    /// "14:02"
+    static func clock(_ seconds: Int) -> String {
+        let s = max(0, seconds)
+        return String(format: "%d:%02d", s / 60, s % 60)
+    }
+
+    /// "14 min", rounding up so the last partial minute still reads "1 min".
+    static func minutes(_ seconds: Int) -> String {
+        "\(max(0, (seconds + 59) / 60)) min"
     }
 }

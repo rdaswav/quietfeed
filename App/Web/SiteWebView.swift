@@ -23,6 +23,15 @@ enum SiteWebViewFactory {
         return text
     }
 
+    static func userScript(site: SiteRules, runtimeSource: String) -> WKUserScript {
+        WKUserScript(
+            source: InjectionBuilder.script(for: site, runtimeSource: runtimeSource),
+            injectionTime: .atDocumentStart,
+            forMainFrameOnly: true,
+            in: .page
+        )
+    }
+
     @MainActor
     static func makeWebView(
         site: SiteRules,
@@ -37,13 +46,7 @@ enum SiteWebViewFactory {
         config.allowsInlineMediaPlayback = true
         config.allowsPictureInPictureMediaPlayback = true
 
-        let script = WKUserScript(
-            source: InjectionBuilder.script(for: site, runtimeSource: runtimeSource),
-            injectionTime: .atDocumentStart,
-            forMainFrameOnly: true,
-            in: .page
-        )
-        config.userContentController.addUserScript(script)
+        config.userContentController.addUserScript(userScript(site: site, runtimeSource: runtimeSource))
         config.userContentController.add(WeakScriptMessageHandler(messageHandler), name: "quietfeed")
 
         let webView = WKWebView(frame: .zero, configuration: config)
