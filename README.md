@@ -48,6 +48,36 @@ xcodegen generate
 
 `verify.sh` runs the Swift package tests, the JavaScript tests against synthetic pages, the rule pack validator and a simulator build. To run on your own iPhone, copy `Local.xcconfig.example` to `Local.xcconfig` (git-ignored, picked up automatically through `Config/Base.xcconfig`) and set your development team. Shielding the official apps needs the Family Controls capability, which requires a paid Apple Developer account and a real device.
 
+## Maintenance
+
+### Fixing a hide rule
+
+Sites change their pages, so rules go stale. The app shows "rules may be stale" for a site when one of its `canaries` is missing from the home page.
+
+1. Attach the Web Inspector (below) and find the element that should be hidden.
+2. Edit that site's entry in `rules/rulepack.json`: add a CSS selector to `hideSelectors`, or use `hideByText` when the class names are scrambled. Rules are plain data and never contain code.
+3. Bump `packVersion`. A pack is only accepted if its version is not lower than the one the app already has.
+4. Run `./scripts/verify.sh`. It validates the pack and runs the page tests.
+5. Either rebuild the app, or, if you host your own rules server, run `./scripts/deploy-rules.sh` and then tap **Check now** under Settings, Rules. See [`server/README.md`](server/README.md).
+
+### Web Inspector
+
+Debug builds make each web view inspectable. On the iPhone turn on Settings, Safari, Advanced, Web Inspector. On the Mac turn on Safari, Settings, Advanced, Show features for web developers. With the phone connected and Quiet Feed open on a site, the phone appears in Safari's Develop menu, and the page opens in the inspector. Release builds are not inspectable.
+
+### Re-signing each year
+
+Builds installed from Xcode are signed with a development profile that expires after about a year, and the Apple Developer Program membership renews yearly. Before either runs out, renew the membership, connect the phone and run the app from Xcode again. Your logins and settings are kept. Until you do, the app stops launching once the profile lapses.
+
+### Adding a fourth site
+
+A new site needs a code change, because the app only accepts site ids it knows about. A rules-only update cannot add one.
+
+1. Add an entry to `rules/rulepack.json` with a new `id`, `homeURL`, `allowedHosts`, rules and `canaries`, and bump `packVersion`.
+2. Add the `id` to `knownSiteIds` in `Packages/QuietFeedCore/Sources/QuietFeedCore/Rules/RulePackValidator.swift` and to `KNOWN_IDS` in `scripts/validate-rules.mjs`.
+3. Add a new fixed UUID for it in `App/Web/SiteWebView.swift`, so the site gets its own cookie store.
+4. Optionally add a default daily budget in `LimitSettings.swift`. Without one it uses the 20 minute default.
+5. Add a hand-written fixture page and a test next to the existing ones, then run `./scripts/verify.sh`.
+
 ## Design
 
 Deliberately unexciting: nothing in the app competes for your attention. One sage accent, amber instead of red, system fonts, hairline borders and no animation beyond system defaults. Plain, short copy with no guilt ("That's today's Instagram.").
