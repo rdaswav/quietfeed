@@ -48,6 +48,10 @@ xcodegen generate
 
 `verify.sh` runs the Swift package tests, the JavaScript tests against synthetic pages, the rule pack validator and a simulator build. To run on your own iPhone, copy `Local.xcconfig.example` to `Local.xcconfig` (git-ignored, picked up automatically through `Config/Base.xcconfig`) and set your development team. Shielding the official apps needs the Family Controls capability, which requires a paid Apple Developer account and a real device.
 
+## Testing and feedback
+
+Want to try it, or help test? See [`docs/TESTING.md`](docs/TESTING.md). Bugs and broken hide rules go in the [issue tracker](https://github.com/rdaswav/quietfeed/issues). The [privacy policy](docs/PRIVACY.md) is short: the app collects nothing.
+
 ## Hosting your own rules server
 
 This is optional. Without it the app uses the rules built into it, which only change when you rebuild. With it, a site redesign is a one-file edit that reaches the phone without a rebuild.
