@@ -1,6 +1,12 @@
 import SwiftUI
 import QuietFeedCore
 
+private struct ShieldGate: Identifiable {
+    let id = UUID()
+    let title: String
+    let action: () -> Void
+}
+
 private struct LimitGate: Identifiable {
     let id = UUID()
     let title: String
@@ -13,11 +19,13 @@ struct SettingsView: View {
     @State private var serverInvalid = false
     @State private var phraseDraft = ""
     @State private var gate: LimitGate?
+    @State private var shieldGate: ShieldGate?
 
     var body: some View {
         Form {
             limitsSection
             frictionSection
+            officialAppsSection
             rulesSection
             aboutSection
         }
@@ -40,6 +48,15 @@ struct SettingsView: View {
                     gate = nil
                 },
                 onCancel: { gate = nil; phraseDraft = model.limits.frictionPhrase }
+            )
+        }
+        .sheet(item: $shieldGate) { pending in
+            FrictionGate(
+                title: pending.title,
+                countdownSeconds: model.frictionCountdownSeconds,
+                phrase: model.limits.frictionPhrase,
+                onConfirm: { pending.action(); shieldGate = nil },
+                onCancel: { shieldGate = nil }
             )
         }
     }
@@ -133,6 +150,91 @@ struct SettingsView: View {
         }
         .accessibilityValue(format(value.wrappedValue))
         .listRowBackground(Theme.surface)
+    }
+
+    // MARK: Official apps
+
+    private var shieldBinding: Binding<Bool> {
+        Binding(
+            get: { model.shieldEnabled },
+            set: { on in
+                if on {
+                    model.setShieldEnabled(true)
+                } else {
+                    shieldGate = ShieldGate(title: "Stop shielding the official apps") {
+                        model.setShieldEnabled(false)
+                    }
+                }
+            }
+        )
+    }
+
+    private var officialAppsSection: some View {
+        Section {
+            row("Screen Time access", accessText)
+            switch model.shieldAuthorization {
+            case .notDetermined:
+                Button {
+                    Task { await model.requestShieldAccess() }
+                } label: {
+                    Text("Allow access").foregroundStyle(Theme.accent)
+                }
+                .listRowBackground(Theme.surface)
+            case .denied:
+                Text("Turn Quiet Feed on under Settings, Screen Time, then come back.")
+                    .font(Theme.captionFont)
+                    .foregroundStyle(Theme.textMuted)
+                    .listRowBackground(Theme.surface)
+            case .approved:
+                chooseAppsRow
+                Toggle(isOn: shieldBinding) {
+                    Text("Shield official apps").font(Theme.bodyFont).foregroundStyle(Theme.text)
+                }
+                .tint(Theme.accent)
+                .disabled(!model.shieldHasSelection && !model.shieldEnabled)
+                .listRowBackground(Theme.surface)
+                row("Post Mode length", "15 min")
+            }
+        } header: {
+            Text("Official apps").foregroundStyle(Theme.textMuted)
+        } footer: {
+            Text("Shielded apps show a Screen Time screen when opened. Taking apps off the shield or switching it off asks you to wait first.")
+                .font(Theme.captionFont)
+                .foregroundStyle(Theme.textMuted)
+        }
+    }
+
+    @ViewBuilder
+    private var chooseAppsRow: some View {
+        #if canImport(FamilyControls)
+        if let controller = model.shield as? FamilyShieldController {
+            ChooseAppsRow(
+                controller: controller,
+                version: model.shieldVersion,
+                onCommitted: { model.reconcileShield() },
+                requestGate: { title, action in shieldGate = ShieldGate(title: title, action: action) }
+            )
+        } else {
+            simulatorNote
+        }
+        #else
+        simulatorNote
+        #endif
+    }
+
+    private var simulatorNote: some View {
+        Text("Choosing apps needs a real iPhone.")
+            .font(Theme.captionFont)
+            .foregroundStyle(Theme.textMuted)
+            .listRowBackground(Theme.surface)
+    }
+
+    private var accessText: String {
+        switch model.shieldAuthorization {
+        case .notDetermined: return "Not asked"
+        case .approved: return "Allowed"
+        case .denied: return "Not allowed"
+        }
     }
 
     // MARK: Rules

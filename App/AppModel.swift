@@ -28,6 +28,10 @@ final class AppModel {
     private(set) var limits = LimitSettings()
     /// Bumped whenever usage changes so views that read budget state refresh.
     private(set) var usageVersion = 0
+    /// Bumped whenever the shield state changes so views that read it refresh.
+    private(set) var shieldVersion = 0
+    /// Whether the user wants the official apps shielded. Needs Screen Time access and a chosen set of apps.
+    private(set) var shieldEnabled: Bool
 
     var sites: [SiteRules] { pack?.sites ?? [] }
 
@@ -43,6 +47,8 @@ final class AppModel {
     @ObservationIgnored private let limitsStore: JSONFileStore
     @ObservationIgnored private var ticksSinceFlush = 0
     @ObservationIgnored private let defaults: UserDefaults
+    @ObservationIgnored let shield: ShieldController
+    private static let shieldEnabledKey = "shield.enabled"
     private static let serverURLKey = "rules.serverURL"
     private static let lastAttemptKey = "rules.lastAttempt"
 
@@ -53,9 +59,12 @@ final class AppModel {
         usageURL: URL? = nil,
         limitsURL: URL? = nil,
         clock: Clock = .system,
-        fetcher: RuleFetching = URLSessionRuleFetcher()
+        fetcher: RuleFetching = URLSessionRuleFetcher(),
+        shield: ShieldController? = nil
     ) {
         self.defaults = defaults
+        self.shield = shield ?? Self.makeShield()
+        self.shieldEnabled = defaults.bool(forKey: Self.shieldEnabledKey)
         self.limitsStore = JSONFileStore(url: limitsURL ?? Self.supportURL("limits.json"))
         self.limits = limitsStore.load(LimitSettings.self) ?? LimitSettings()
         self.ledger = UsageLedger(store: JSONFileStore(url: usageURL ?? Self.supportURL("usage.json")), clock: clock)
@@ -143,6 +152,47 @@ final class AppModel {
     private static func supportURL(_ name: String) -> URL {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent(name)
+    }
+
+    // MARK: Shield
+
+    /// The simulator and previews use the fake; a device uses Family Controls.
+    private static func makeShield() -> ShieldController {
+        #if targetEnvironment(simulator) || !canImport(FamilyControls)
+        return FakeShieldController()
+        #else
+        return FamilyShieldController()
+        #endif
+    }
+
+    var shieldAuthorization: ShieldAuthorization {
+        _ = shieldVersion
+        return shield.authorization
+    }
+
+    var shieldHasSelection: Bool {
+        _ = shieldVersion
+        return shield.hasSelection
+    }
+
+    func requestShieldAccess() async {
+        try? await shield.requestAuthorization()
+        shieldVersion += 1
+    }
+
+    /// Turning on only tightens, so it applies at once. Turning off must go through the gate first.
+    func setShieldEnabled(_ on: Bool) {
+        shieldEnabled = on
+        defaults.set(on, forKey: Self.shieldEnabledKey)
+        reconcileShield()
+    }
+
+    /// Called when the app returns to the foreground, and after any shield change.
+    @discardableResult
+    func reconcileShield(now: Date = Date()) -> ShieldReconciler.Outcome {
+        let outcome = ShieldReconciler.reconcile(shield, enabled: shieldEnabled, now: now)
+        shieldVersion += 1
+        return outcome
     }
 
     // MARK: Limits

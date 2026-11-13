@@ -36,6 +36,12 @@ targets:
         NSPhotoLibraryUsageDescription: Quiet Feed lets the sites you use attach photos from your library.
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
+    entitlements:
+      path: App/QuietFeed.entitlements
+      properties:
+        com.apple.developer.family-controls: true
+        com.apple.security.application-groups:
+          - group.dev.quietfeed.app
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.quietfeed.app

@@ -14,7 +14,10 @@ struct QuietFeedApp: App {
             HomeView(model: model)
                 .task { if !Self.isRunningTests { await model.refreshRules() } }
                 .onChange(of: scenePhase) { _, phase in
-                    if phase == .active, !Self.isRunningTests { Task { await model.refreshRulesIfDue() } }
+                    if phase == .active, !Self.isRunningTests {
+                        model.reconcileShield()
+                        Task { await model.refreshRulesIfDue() }
+                    }
                 }
         }
     }
