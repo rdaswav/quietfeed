@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "packVersion": 1,
-  "updated": "2026-11-13",
+  "packVersion": 2,
+  "updated": "2026-11-14",
   "sites": [
     {
       "id": "instagram",
@@ -56,17 +56,17 @@
       ],
       "hideSelectors": [
         "a[href*=\"/reel/\"]",
-        "a[aria-label=\"Reels\"]",
-        "a[aria-label=\"Video\"]"
+        "[role=\"tab\"][aria-label^=\"reels\" i]"
       ],
       "hideByText": [
-        { "text": "Reels", "closest": "div[role=\"article\"]" },
-        { "text": "Reels and short videos", "closest": "div[role=\"article\"]" },
-        { "text": "Suggested for you", "closest": "div[role=\"article\"]" },
-        { "text": "People you may know", "closest": "div[role=\"article\"]" }
+        { "text": "Reels", "closest": "div[data-type=\"vscroller\"] > div" },
+        { "text": "Reels and short videos", "closest": "div[data-type=\"vscroller\"] > div" },
+        { "text": "Suggested for you", "closest": "div[data-type=\"vscroller\"] > div" },
+        { "text": "People you may know", "closest": "div[data-type=\"vscroller\"] > div" },
+        { "text": "Open app", "closest": "div[data-mcomponent=\"MScreen\"] > div" }
       ],
       "contentRules": [],
-      "canaries": ["#screen-root", "[role=\"main\"]"]
+      "canaries": ["#screen-root", "[role=\"tablist\"]"]
     }
   ]
 }

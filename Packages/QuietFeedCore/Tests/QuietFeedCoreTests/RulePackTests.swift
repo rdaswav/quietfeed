@@ -15,7 +15,7 @@ final class RulePackTests: XCTestCase {
         let data = try Data(contentsOf: packURL())
         let pack = try JSONDecoder().decode(RulePack.self, from: data)
         XCTAssertEqual(pack.schemaVersion, 1)
-        XCTAssertEqual(pack.packVersion, 1)
+        XCTAssertGreaterThanOrEqual(pack.packVersion, 1)  // rises whenever the rules are tuned
         XCTAssertEqual(pack.sites.count, 3)
         XCTAssertEqual(pack.sites.map(\.id), ["instagram", "youtube", "facebook"])
         let yt = try XCTUnwrap(pack.sites.first { $0.id == "youtube" })

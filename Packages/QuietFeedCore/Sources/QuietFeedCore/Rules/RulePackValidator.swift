@@ -20,7 +20,8 @@ public enum RulePackValidator {
     public static let maxListEntries = 200
     public static let maxSelectorLength = 300
     public static let knownSiteIds: Set<String> = ["instagram", "youtube", "facebook"]
-    public static let forbiddenSelectorCharacters = Set("{}<>;")
+    /// ">" is allowed as the CSS child combinator. The rest can break out of a CSS rule or a tag.
+    public static let forbiddenSelectorCharacters = Set("{}<;")
 
     public static func validate(_ data: Data) -> Result<RulePack, ValidationError> {
         if data.count >= maxBytes { return .failure(.tooLarge(bytes: data.count)) }

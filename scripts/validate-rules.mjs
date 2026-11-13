@@ -7,7 +7,8 @@ const MAX_SITES = 10;
 const MAX_LIST = 200;
 const MAX_SELECTOR = 300;
 const KNOWN_IDS = ["instagram", "youtube", "facebook"];
-const FORBIDDEN = /[{}<>;]/;
+// ">" is allowed as the CSS child combinator. The rest can break out of a CSS rule or a tag.
+const FORBIDDEN = /[{}<;]/;
 
 export function validate(buf) {
   const errors = [];

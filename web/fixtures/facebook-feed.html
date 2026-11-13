@@ -1,29 +1,52 @@
 <!doctype html>
 <html>
-<head><title>Facebook feed (synthetic fixture)</title></head>
+<head><title>Facebook feed (synthetic fixture, structure copied from m.facebook.com, no real content)</title></head>
 <body>
-  <div id="screen-root">
-    <div role="navigation">
-      <a href="/" aria-label="Home" id="nav-home">Home</a>
-      <a href="/reel/1" aria-label="Reels" id="nav-reels">Reels</a>
-      <a href="/watch/" aria-label="Video" id="nav-video">Video</a>
-    </div>
-    <div role="main">
-      <div role="article" id="post-1">
-        <h3>Friend One</h3>
-        <div>A normal post</div>
-      </div>
-      <div role="article" id="post-people">
-        <h3>People you may know</h3>
-        <div>Someone</div>
-      </div>
-      <div role="article" id="post-reels">
-        <h3>Reels and short videos</h3>
-        <a href="/reel/99">A reel</a>
-      </div>
-      <div role="article" id="post-2">
-        <h3>Friend Two</h3>
-        <div>Another normal post</div>
+  <div id="app-body">
+    <div id="screen-root">
+      <div data-mcomponent="MScreen" data-type="container">
+        <div data-mcomponent="MContainer" data-type="vscroller">
+          <div id="tabs" role="tablist" data-mcomponent="MContainer" data-type="container">
+            <div role="tab" id="tab-home" aria-label="feed, 1 new, 1 of 6"><div>icon</div></div>
+            <div role="tab" id="tab-friends" aria-label="friends, 2 of 6"><div>icon</div></div>
+            <div role="tab" id="tab-messages" aria-label="messages, 3 of 6"><div>icon</div></div>
+            <div role="tab" id="tab-reels" aria-label="reels, 4 of 6"><div>icon</div></div>
+            <div role="tab" id="tab-alerts" aria-label="notifications, 2 new, 5 of 6"><div>icon</div></div>
+          </div>
+          <div id="composer" data-mcomponent="MContainer" data-type="container">
+            <div role="button" aria-label="What's on your mind?"><span>What's on your mind?</span></div>
+          </div>
+          <div id="post-1" data-mcomponent="MContainer" data-type="container">
+            <div data-mcomponent="MContainer" data-type="container">
+              <div data-mcomponent="MContainer" data-type="container"><span>Friend One</span></div>
+              <div data-mcomponent="MContainer" data-type="container"><span>A normal post</span></div>
+            </div>
+          </div>
+          <div id="unit-reels" data-mcomponent="MContainer" data-type="container">
+            <div data-mcomponent="MContainer" data-type="container">
+              <div data-mcomponent="MContainer" data-type="container">
+                <h2 data-mcomponent="TextArea" data-type="text"><div><span>Reels</span></div></h2>
+              </div>
+            </div>
+          </div>
+          <div id="unit-people" data-mcomponent="MContainer" data-type="container">
+            <div data-mcomponent="MContainer" data-type="container">
+              <div data-mcomponent="TextArea" data-type="text"><div><span>People you may know</span></div></div>
+              <div role="button"><span>Add friend</span></div>
+            </div>
+          </div>
+          <div id="post-2" data-mcomponent="MContainer" data-type="container">
+            <div data-mcomponent="MContainer" data-type="container">
+              <span>Friend Two</span>
+              <span>Another normal post</span>
+            </div>
+          </div>
+        </div>
+        <div id="open-app-bar" data-mcomponent="MContainer" data-type="container" style="position: fixed; bottom: 0">
+          <div data-mcomponent="MContainer" data-type="container">
+            <div role="button" data-mcomponent="MContainer"><div><div><span>Open app</span></div></div></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>

@@ -54,6 +54,9 @@ struct BrowserView: View {
     let site: SiteRules
     let model: AppModel
     @State private var controller = BrowserController()
+    #if DEBUG
+    @State private var outlineNote: String?
+    #endif
     @State private var gate: GateRequest?
     @State private var pauseRemaining: Int?
     @Environment(\.scenePhase) private var scenePhase
@@ -181,6 +184,11 @@ struct BrowserView: View {
                 Button("Pause filters (5 min)", systemImage: "pause.circle") { requestFilterPause() }
                     .disabled(pauseRemaining != nil || !model.canPauseFilters(for: site.id))
                 Button("Open in Safari", systemImage: "safari") { controller.openInSafari(site) }
+                #if DEBUG
+                Button("Save page outline", systemImage: "square.and.arrow.down") {
+                    Task { outlineNote = await controller.savePageOutline(siteId: site.id) }
+                }
+                #endif
             } label: {
                 Image(systemName: "ellipsis")
                     .foregroundStyle(Theme.textMuted)
@@ -194,6 +202,9 @@ struct BrowserView: View {
         .overlay(alignment: .bottom) {
             Rectangle().fill(Theme.line).frame(height: Theme.hairline)
         }
+        #if DEBUG
+        .modifier(OutlineAlert(note: $outlineNote))
+        #endif
     }
 
     @ViewBuilder

@@ -89,10 +89,19 @@ final class RulePackValidatorTests: XCTestCase {
     }
 
     func testForbiddenSelectorCharacters() {
-        for ch in ["{", "}", "<", ">", ";"] {
+        for ch in ["{", "}", "<", ";"] {
             let sel = "a\(ch)b"
             XCTAssertEqual(run(pack { $0.hideSelectors = [sel] }), .invalidSelector(site: "youtube", selector: sel), ch)
         }
+    }
+
+    /// Relaxed on 2026-11-14: ">" is the child combinator and some sites (Facebook) can only be targeted with it.
+    func testChildCombinatorIsAllowedButTagBreakoutIsNot() {
+        XCTAssertNil(run(pack { $0.hideSelectors = ["div[data-type=\"x\"] > div"] }))
+        let breakout = "a > b</style><script>"
+        XCTAssertEqual(run(pack { $0.hideSelectors = [breakout] }), .invalidSelector(site: "youtube", selector: breakout))
+        let block = "a > b } c { d"
+        XCTAssertEqual(run(pack { $0.hideSelectors = [block] }), .invalidSelector(site: "youtube", selector: block))
     }
 
     func testBadCanaryAndTextRuleSelectors() {

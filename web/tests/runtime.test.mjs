@@ -75,13 +75,18 @@ test("text rule uses the within selector and closest for the pivot bar", async (
   assert.ok(!document.getElementById("pivot-subs").hasAttribute("data-qf-hidden"));
 });
 
-test("facebook text rules hide whole articles", async () => {
-  const { document } = load({ siteId: "facebook", html: "facebook-feed.html", url: "https://m.facebook.com/" });
+test("facebook rules hide feed units, the open app bar and the reels tab", async () => {
+  const { window, document } = load({ siteId: "facebook", html: "facebook-feed.html", url: "https://m.facebook.com/" });
   await sleep(400);
-  assert.equal(document.getElementById("post-people").getAttribute("data-qf-hidden"), "1");
-  assert.equal(document.getElementById("post-reels").getAttribute("data-qf-hidden"), "1");
+  assert.equal(document.getElementById("unit-reels").getAttribute("data-qf-hidden"), "1");
+  assert.equal(document.getElementById("unit-people").getAttribute("data-qf-hidden"), "1");
+  assert.equal(document.getElementById("open-app-bar").getAttribute("data-qf-hidden"), "1");
+  assert.ok(hidden(window, document.getElementById("tab-reels")));
   assert.ok(!document.getElementById("post-1").hasAttribute("data-qf-hidden"));
   assert.ok(!document.getElementById("post-2").hasAttribute("data-qf-hidden"));
+  assert.ok(!document.getElementById("tabs").hasAttribute("data-qf-hidden"));
+  assert.ok(!hidden(window, document.getElementById("tab-home")));
+  assert.ok(!hidden(window, document.getElementById("composer")));
 });
 
 test("content added after load is hidden within 500 ms", async () => {
