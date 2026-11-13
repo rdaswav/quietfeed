@@ -1,13 +1,23 @@
 import SwiftUI
 import QuietFeedCore
 
+private struct LimitGate: Identifiable {
+    let id = UUID()
+    let title: String
+    let settings: LimitSettings
+}
+
 struct SettingsView: View {
     let model: AppModel
     @State private var serverText = ""
     @State private var serverInvalid = false
+    @State private var phraseDraft = ""
+    @State private var gate: LimitGate?
 
     var body: some View {
         Form {
+            limitsSection
+            frictionSection
             rulesSection
             aboutSection
         }
@@ -15,7 +25,114 @@ struct SettingsView: View {
         .background(Theme.bg)
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear { serverText = model.serverURLText }
+        .onAppear {
+            serverText = model.serverURLText
+            phraseDraft = model.limits.frictionPhrase
+        }
+        .sheet(item: $gate) { pending in
+            FrictionGate(
+                title: pending.title,
+                countdownSeconds: model.frictionCountdownSeconds,
+                phrase: model.limits.frictionPhrase,
+                onConfirm: {
+                    model.commitLimits(pending.settings)
+                    phraseDraft = model.limits.frictionPhrase
+                    gate = nil
+                },
+                onCancel: { gate = nil; phraseDraft = model.limits.frictionPhrase }
+            )
+        }
+    }
+
+    // MARK: Limits and friction
+
+    /// Tightening applies at once. Loosening opens the friction gate and applies only if it is passed.
+    private func change(_ title: String, _ edit: (inout LimitSettings) -> Void) {
+        var new = model.limits
+        edit(&new)
+        if model.proposeLimits(new) == .needsGate {
+            gate = LimitGate(title: title, settings: new)
+        }
+    }
+
+    private func budgetBinding(_ site: SiteRules) -> Binding<Int> {
+        Binding(
+            get: { model.limits.budgetMinutes(site: site.id) },
+            set: { v in change("Raise the daily limit for \(site.name)") { $0.dailyBudgetMinutesBySite[site.id] = v } }
+        )
+    }
+
+    private func intBinding(_ keyPath: WritableKeyPath<LimitSettings, Int>, title: String) -> Binding<Int> {
+        Binding(
+            get: { model.limits[keyPath: keyPath] },
+            set: { v in change(title) { $0[keyPath: keyPath] = v } }
+        )
+    }
+
+    private var limitsSection: some View {
+        Section {
+            ForEach(model.sites, id: \.id) { site in
+                stepperRow(site.name, value: budgetBinding(site), range: 0...180, step: 5) { v in
+                    v == 0 ? "No limit" : "\(v) min"
+                }
+            }
+            stepperRow("Extension length", value: intBinding(\.extensionMinutes, title: "Make extensions longer"),
+                       range: 1...30, step: 1) { "\($0) min" }
+            stepperRow("Extensions per day", value: intBinding(\.maxExtensionsPerDay, title: "Allow more extensions"),
+                       range: 0...10, step: 1) { "\($0)" }
+            stepperRow("Filter pauses per day", value: intBinding(\.maxFilterPausesPerDay, title: "Allow more filter pauses"),
+                       range: 0...10, step: 1) { "\($0)" }
+        } header: {
+            Text("Daily limits").foregroundStyle(Theme.textMuted)
+        } footer: {
+            Text("Lowering a limit applies at once. Raising one asks you to wait first.")
+                .font(Theme.captionFont)
+                .foregroundStyle(Theme.textMuted)
+        }
+    }
+
+    private var frictionSection: some View {
+        Section {
+            stepperRow("Countdown", value: intBinding(\.frictionCountdownSeconds, title: "Shorten the countdown"),
+                       range: 5...120, step: 5) { "\($0) s" }
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Phrase")
+                    .font(Theme.captionFont)
+                    .foregroundStyle(Theme.textMuted)
+                TextField("Phrase", text: $phraseDraft)
+                    .font(Theme.bodyFont)
+                    .foregroundStyle(Theme.text)
+                    .autocorrectionDisabled()
+                    .onSubmit { commitPhrase() }
+            }
+            .listRowBackground(Theme.surface)
+        } header: {
+            Text("Friction").foregroundStyle(Theme.textMuted)
+        }
+    }
+
+    private func commitPhrase() {
+        let trimmed = phraseDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            phraseDraft = model.limits.frictionPhrase
+            return
+        }
+        change("Change the phrase") { $0.frictionPhrase = trimmed }
+    }
+
+    private func stepperRow(
+        _ title: String, value: Binding<Int>, range: ClosedRange<Int>, step: Int,
+        format: @escaping (Int) -> String
+    ) -> some View {
+        Stepper(value: value, in: range, step: step) {
+            HStack {
+                Text(title).font(Theme.bodyFont).foregroundStyle(Theme.text)
+                Spacer()
+                Text(format(value.wrappedValue)).font(Theme.timeFont).foregroundStyle(Theme.textMuted)
+            }
+        }
+        .accessibilityValue(format(value.wrappedValue))
+        .listRowBackground(Theme.surface)
     }
 
     // MARK: Rules

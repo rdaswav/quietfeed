@@ -24,8 +24,8 @@ final class AppModel {
     private(set) var ruleStatus: RuleStatus?
     private(set) var isChecking = false
     var serverURLText: String
-    /// Limit and friction settings. Persistence arrives in T17.
-    var limits = LimitSettings()
+    /// Limit and friction settings, persisted to limits.json.
+    private(set) var limits = LimitSettings()
     /// Bumped whenever usage changes so views that read budget state refresh.
     private(set) var usageVersion = 0
 
@@ -40,6 +40,7 @@ final class AppModel {
 
     @ObservationIgnored private var store: RuleStore?
     @ObservationIgnored let ledger: UsageLedger
+    @ObservationIgnored private let limitsStore: JSONFileStore
     @ObservationIgnored private var ticksSinceFlush = 0
     @ObservationIgnored private let defaults: UserDefaults
     private static let serverURLKey = "rules.serverURL"
@@ -50,10 +51,13 @@ final class AppModel {
         defaults: UserDefaults = .standard,
         cacheURL: URL? = nil,
         usageURL: URL? = nil,
+        limitsURL: URL? = nil,
         clock: Clock = .system,
         fetcher: RuleFetching = URLSessionRuleFetcher()
     ) {
         self.defaults = defaults
+        self.limitsStore = JSONFileStore(url: limitsURL ?? Self.supportURL("limits.json"))
+        self.limits = limitsStore.load(LimitSettings.self) ?? LimitSettings()
         self.ledger = UsageLedger(store: JSONFileStore(url: usageURL ?? Self.supportURL("usage.json")), clock: clock)
         let savedURL = defaults.string(forKey: Self.serverURLKey)
         self.serverURLText = savedURL ?? ""
@@ -142,6 +146,29 @@ final class AppModel {
     }
 
     // MARK: Limits
+
+    enum LimitChangeResult: Equatable {
+        case applied
+        case needsGate
+        case unchanged
+    }
+
+    /// Applies a settings change at once if it only tightens. A loosening change is not applied;
+    /// the caller shows the friction gate and then calls `commitLimits`.
+    @discardableResult
+    func proposeLimits(_ new: LimitSettings) -> LimitChangeResult {
+        guard new != limits else { return .unchanged }
+        if FrictionPolicy.requiresGate(from: limits, to: new) { return .needsGate }
+        commitLimits(new)
+        return .applied
+    }
+
+    /// Applies and saves a settings change without asking. Only call after the gate, or for tightening.
+    func commitLimits(_ new: LimitSettings) {
+        limits = new
+        try? limitsStore.save(new)
+        usageVersion += 1
+    }
 
     static let flushEverySeconds = 15
     static let filterPauseSeconds = 5 * 60
