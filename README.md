@@ -4,7 +4,7 @@
 
 Quiet Feed is a small iPhone app that opens Instagram, YouTube and Facebook as their mobile websites inside its own browser and hides the parts built to keep you scrolling: Reels, Shorts, Explore and "suggested for you" content. Your feed, stories, messages and subscriptions stay.
 
-> **Status: in development.** The screens below are the design the app is being built to. They are mockups, not screenshots, and not every feature exists yet. See [Roadmap](#roadmap).
+> **Status: early.** The app is built and runs on the author's own iPhone, but the hide rules for each site still need tuning against live pages, and it has only had light daily use. The screens below are mockups of the design, not screenshots. See [Roadmap](#roadmap) and [Limitations](#limitations).
 
 <p align="center">
   <img src="docs/assets/screens.svg" alt="Three screens: Home with time left per site, the Browser with the feed and a countdown, and the calm limit reached screen." width="100%">
@@ -28,13 +28,13 @@ On top of that:
 ## Roadmap
 
 - [x] Project scaffold and design
-- [ ] Rule pack and validator
-- [ ] Injected runtime and tests
-- [ ] Browser with navigation policy
-- [ ] Rules fetched from your own server
-- [ ] Limits and friction
-- [ ] Shielding the official apps
-- [ ] Onboarding and polish
+- [x] Rule pack and validator
+- [x] Injected runtime and tests
+- [x] Browser with navigation policy
+- [x] Rules fetched from your own server
+- [x] Limits and friction
+- [x] Shielding the official apps
+- [x] Onboarding and polish
 
 ## Building it
 
@@ -47,6 +47,14 @@ xcodegen generate
 ```
 
 `verify.sh` runs the Swift package tests, the JavaScript tests against synthetic pages, the rule pack validator and a simulator build. To run on your own iPhone, copy `Local.xcconfig.example` to `Local.xcconfig` (git-ignored, picked up automatically through `Config/Base.xcconfig`) and set your development team. Shielding the official apps needs the Family Controls capability, which requires a paid Apple Developer account and a real device.
+
+## Hosting your own rules server
+
+This is optional. Without it the app uses the rules built into it, which only change when you rebuild. With it, a site redesign is a one-file edit that reaches the phone without a rebuild.
+
+The server is a small nginx container that serves one file, `rulepack.json`, and returns 404 for everything else. [`server/README.md`](server/README.md) has the setup for a NAS or any machine that runs Docker, and [`scripts/deploy-rules.sh`](scripts/deploy-rules.sh) validates and pushes a new pack over ssh. Then enter the address, for example `http://your-server:8787/rulepack.json`, in the app under Settings, Rules, Server address, and tap **Check now**.
+
+Rules are plain data, never code, because the file travels over plain HTTP. Run the server on a network you trust, such as your home network, and do not expose it to the internet.
 
 ## Maintenance
 
