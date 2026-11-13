@@ -32,14 +32,15 @@ struct HomeView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    // Settings arrive in T12.
-                    Image(systemName: "gearshape")
-                        .foregroundStyle(Theme.textMuted)
-                        .accessibilityLabel("Settings")
+                    NavigationLink {
+                        SettingsView(model: model)
+                    } label: {
+                        Image(systemName: "gearshape")
+                            .foregroundStyle(Theme.textMuted)
+                    }
+                    .accessibilityLabel("Settings")
                 }
             }
-            .navigationTitle("Quiet Feed")
-            .navigationBarTitleDisplayMode(.large)
             .toolbarBackground(Theme.bg, for: .navigationBar)
         }
         .tint(Theme.accent)

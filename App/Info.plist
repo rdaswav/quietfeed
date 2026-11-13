@@ -20,8 +20,15 @@
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
 	<key>NSCameraUsageDescription</key>
 	<string>Quiet Feed lets the sites you use take photos to post.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Quiet Feed checks your home server for updated hiding rules.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Quiet Feed lets the sites you use record audio and video to post.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
