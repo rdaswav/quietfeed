@@ -41,20 +41,19 @@ public final class RuleStore {
 
     public private(set) var activePack: RulePack
     public private(set) var status: Status
-    public var serverURL: URL
+    /// nil means no rules server is configured: the store only uses the bundled and cached packs.
+    public var serverURL: URL?
 
     private let cache: JSONFileStore
     private let fetcher: RuleFetching
     private let now: () -> Date
-
-    public static let defaultServerURL = URL(string: "http://your-server:8787/rulepack.json")!
 
     /// Load order: bundled pack, then the cached pack if it is valid and has a higher `packVersion`.
     public init(
         bundled: RulePack,
         cache: JSONFileStore,
         fetcher: RuleFetching,
-        serverURL: URL = RuleStore.defaultServerURL,
+        serverURL: URL? = nil,
         now: @escaping () -> Date = Date.init
     ) {
         self.cache = cache
@@ -76,6 +75,7 @@ public final class RuleStore {
     /// Fetches the remote pack. A failure, an invalid pack or an older pack leaves the active
     /// pack unchanged. An accepted pack is cached and applies to the next page load.
     public func refresh() async {
+        guard let serverURL else { return }
         status.lastFetchAt = now()
         let data: Data
         do {

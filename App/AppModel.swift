@@ -47,7 +47,7 @@ final class AppModel {
     ) {
         self.defaults = defaults
         let savedURL = defaults.string(forKey: Self.serverURLKey)
-        self.serverURLText = savedURL ?? RuleStore.defaultServerURL.absoluteString
+        self.serverURLText = savedURL ?? ""
 
         guard let url = bundle.url(forResource: "rulepack", withExtension: "json"),
               let data = try? Data(contentsOf: url) else {
@@ -61,7 +61,7 @@ final class AppModel {
             let cache = JSONFileStore(url: cacheURL ?? Self.defaultCacheURL())
             let store = RuleStore(
                 bundled: bundled, cache: cache, fetcher: fetcher,
-                serverURL: URL(string: serverURLText) ?? RuleStore.defaultServerURL)
+                serverURL: URL(string: serverURLText))
             self.store = store
             syncFromStore()
         }
@@ -82,10 +82,16 @@ final class AppModel {
 
     // MARK: Rules
 
-    /// Returns false when the text is not an http or https URL.
+    /// Returns false when the text is not an http or https URL. Empty text clears the server.
     @discardableResult
     func setServerURL(_ text: String) -> Bool {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            serverURLText = ""
+            defaults.removeObject(forKey: Self.serverURLKey)
+            store?.serverURL = nil
+            return true
+        }
         guard let url = URL(string: trimmed), let scheme = url.scheme?.lowercased(),
               scheme == "http" || scheme == "https", url.host != nil else { return false }
         serverURLText = trimmed

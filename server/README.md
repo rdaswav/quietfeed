@@ -1,7 +1,7 @@
 # Rules server
 
 A tiny nginx container on the NAS that serves `rulepack.json` on the home network.
-The app fetches `http://your-server:8787/rulepack.json` (change it in Settings).
+The app does not know about any server until you enter its address in Settings, under Rules, for example `http://<your-nas-ip>:8787/rulepack.json`. Until then it only uses the rules bundled in the app.
 The pack is declarative JSON only, never code, because it travels over plain HTTP.
 
 ## One-time setup (run by hand, not by the build loop)
@@ -43,5 +43,5 @@ Edit `rules/rulepack.json`, bump `packVersion`, run `./scripts/deploy-rules.sh`
 
 ## Checks
 
-- `curl http://your-server:8787/rulepack.json` returns the pack.
+- `curl http://<your-nas-ip>:8787/rulepack.json` returns the pack.
 - Any other path returns 404.

@@ -34,7 +34,7 @@ struct SettingsView: View {
                 Text("Server address")
                     .font(Theme.captionFont)
                     .foregroundStyle(Theme.textMuted)
-                TextField("http://your-server:8787/rulepack.json", text: $serverText)
+                TextField("Optional, for example http://your-server:8787/rulepack.json", text: $serverText)
                     .font(Theme.bodyFont)
                     .foregroundStyle(Theme.text)
                     .keyboardType(.URL)

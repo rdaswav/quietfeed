@@ -28,9 +28,29 @@ final class RuleStoreTests: XCTestCase {
 
     private var cache: JSONFileStore { JSONFileStore(url: dir.appendingPathComponent("rulepack.cache.json")) }
 
-    private func store(bundled: Int = 2, fetch: Result<Data, Error> = .failure(Boom())) -> RuleStore {
+    private static let testServer = URL(string: "https://rules.example.test/rulepack.json")
+
+    private func store(bundled: Int = 2, fetch: Result<Data, Error> = .failure(Boom()),
+                       server: URL? = RuleStoreTests.testServer) -> RuleStore {
         RuleStore(bundled: pack(bundled), cache: cache, fetcher: FakeFetcher(result: fetch),
-                  now: { Date(timeIntervalSince1970: 1000) })
+                  serverURL: server, now: { Date(timeIntervalSince1970: 1000) })
+    }
+
+    func testNoServerMeansRefreshDoesNothing() async {
+        // Even a valid newer pack is ignored when no server is configured.
+        let s = store(bundled: 2, fetch: .success(data(9)), server: nil)
+        await s.refresh()
+        XCTAssertEqual(s.activePack.packVersion, 2)
+        XCTAssertEqual(s.status, RuleStore.Status(source: .bundled, packVersion: 2, lastFetchAt: nil, lastError: nil))
+        XCTAssertNil(cache.readData())
+    }
+
+    func testClearingTheServerStopsFetching() async {
+        let s = store(bundled: 2, fetch: .success(data(9)))
+        s.serverURL = nil
+        await s.refresh()
+        XCTAssertEqual(s.activePack.packVersion, 2)
+        XCTAssertEqual(s.status.source, .bundled)
     }
 
     func testBundledOnly() {
