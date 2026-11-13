@@ -11,6 +11,14 @@ struct LimitOverlay: View {
     let onExtend: () -> Void
 
     var body: some View {
+        GeometryReader { geo in
+            ScrollView { content.frame(minHeight: geo.size.height) }
+                .scrollBounceBehavior(.basedOnSize)
+        }
+        .background(Theme.bg)
+    }
+
+    private var content: some View {
         VStack(spacing: 20) {
             Spacer()
             Text("That\u{2019}s today\u{2019}s \(siteName).")
@@ -46,8 +54,7 @@ struct LimitOverlay: View {
             Spacer()
         }
         .padding(.horizontal, Theme.gutter * 1.5)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Theme.bg)
+        .frame(maxWidth: .infinity)
     }
 }
 
@@ -60,4 +67,10 @@ struct LimitOverlay: View {
     LimitOverlay(siteName: "Instagram", minutesUsed: 30, extensionMinutes: 5, extensionsLeft: 0,
                  maxExtensions: 2, onHome: {}, onExtend: {})
         .preferredColorScheme(.dark)
+}
+
+#Preview("Largest text") {
+    LimitOverlay(siteName: "Instagram", minutesUsed: 20, extensionMinutes: 5, extensionsLeft: 1,
+                 maxExtensions: 2, onHome: {}, onExtend: {})
+        .dynamicTypeSize(.accessibility5)
 }

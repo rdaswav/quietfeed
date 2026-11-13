@@ -167,3 +167,8 @@ private struct SiteTile: View {
     HomeView(model: AppModel())
         .preferredColorScheme(.dark)
 }
+
+#Preview("Largest text") {
+    HomeView(model: AppModel())
+        .dynamicTypeSize(.accessibility5)
+}

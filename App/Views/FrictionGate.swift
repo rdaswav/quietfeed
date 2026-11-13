@@ -28,6 +28,15 @@ struct FrictionGate: View {
     }
 
     var body: some View {
+        GeometryReader { geo in
+            ScrollView { content.frame(minHeight: geo.size.height) }
+                .scrollBounceBehavior(.basedOnSize)
+        }
+        .background(Theme.bg)
+        .task(id: scenePhase) { await runCountdown() }
+    }
+
+    private var content: some View {
         VStack(spacing: 20) {
             Text(title)
                 .font(Theme.captionFont)
@@ -45,9 +54,7 @@ struct FrictionGate: View {
                 .padding(.top, 4)
         }
         .padding(Theme.gutter)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Theme.bg)
-        .task(id: scenePhase) { await runCountdown() }
+        .frame(maxWidth: .infinity)
     }
 
     private var countdownStage: some View {
@@ -117,4 +124,10 @@ struct FrictionGate: View {
     FrictionGate(title: "Add 5 minutes to Instagram", countdownSeconds: 0, phrase: "I am choosing to scroll",
                  onConfirm: {}, onCancel: {})
         .preferredColorScheme(.dark)
+}
+
+#Preview("Largest text") {
+    FrictionGate(title: "Add 5 minutes to Instagram", countdownSeconds: 0, phrase: "I am choosing to scroll",
+                 onConfirm: {}, onCancel: {})
+        .dynamicTypeSize(.accessibility5)
 }

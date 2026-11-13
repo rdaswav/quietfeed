@@ -354,3 +354,8 @@ struct SettingsView: View {
     NavigationStack { SettingsView(model: AppModel()) }
         .preferredColorScheme(.dark)
 }
+
+#Preview("Largest text") {
+    NavigationStack { SettingsView(model: AppModel()) }
+        .dynamicTypeSize(.accessibility5)
+}

@@ -51,20 +51,22 @@ struct OnboardingView: View {
     private func pageLayout<Content: View>(
         _ title: String, _ message: String, @ViewBuilder content: () -> Content
     ) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text(title)
-                .font(Theme.titleFont)
-                .foregroundStyle(Theme.text)
-                .accessibilityAddTraits(.isHeader)
-            Text(message)
-                .font(Theme.bodyFont)
-                .foregroundStyle(Theme.textMuted)
-            content()
-            Spacer()
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                Text(title)
+                    .font(Theme.titleFont)
+                    .foregroundStyle(Theme.text)
+                    .accessibilityAddTraits(.isHeader)
+                Text(message)
+                    .font(Theme.bodyFont)
+                    .foregroundStyle(Theme.textMuted)
+                content()
+            }
+            .padding(.horizontal, Theme.gutter)
+            .padding(.top, 32)
+            .padding(.bottom, 40)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
         }
-        .padding(.horizontal, Theme.gutter)
-        .padding(.top, 32)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
     // MARK: 1. What this is
@@ -189,4 +191,8 @@ struct OnboardingView: View {
 
 #Preview("Dark") {
     OnboardingView(model: AppModel()).preferredColorScheme(.dark)
+}
+
+#Preview("Largest text") {
+    OnboardingView(model: AppModel()).dynamicTypeSize(.accessibility5)
 }
