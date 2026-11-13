@@ -28,5 +28,5 @@ if [[ $DRY_RUN -eq 1 ]]; then
 fi
 
 echo "deploying to $HOST:$REMOTE_DIR"
-tar -C rules -cf - rulepack.json | ssh "$HOST" "mkdir -p $REMOTE_DIR && tar -C $REMOTE_DIR -xf -"
+COPYFILE_DISABLE=1 tar -C rules -cf - rulepack.json | ssh "$HOST" "mkdir -p $REMOTE_DIR && tar -C $REMOTE_DIR -xf -"
 echo "done. Pull to refresh in the app's Settings."
