@@ -46,6 +46,8 @@ struct HomeView: View {
                     .accessibilityLabel("Settings")
                 }
             }
+            .navigationTitle("Quiet Feed")
+            .navigationBarTitleDisplayMode(.large)
             .toolbarBackground(Theme.bg, for: .navigationBar)
             .sheet(isPresented: $postGate) {
                 FrictionGate(

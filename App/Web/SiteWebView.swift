@@ -91,7 +91,12 @@ struct SiteWebView: UIViewRepresentable {
             site: site, runtimeSource: runtimeSource, messageHandler: context.coordinator)
         webView.navigationDelegate = context.coordinator
         webView.uiDelegate = context.coordinator
+        // The web view follows the system light or dark setting (never overridden), and everything around and
+        // behind the page uses the app background so overscroll and loading show no stray colour.
+        webView.overrideUserInterfaceStyle = .unspecified
         webView.backgroundColor = UIColor(Theme.bg)
+        webView.scrollView.backgroundColor = UIColor(Theme.bg)
+        webView.underPageBackgroundColor = UIColor(Theme.bg)
         webView.isOpaque = false
         controller?.webView = webView
         let homeURL = URL(string: site.homeURL)

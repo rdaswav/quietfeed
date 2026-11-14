@@ -79,6 +79,8 @@ struct BrowserView: View {
                     controller: controller,
                     onHealth: { siteId, report in model.recordHealth(report, for: siteId) }
                 )
+                // Extends under the home indicator so no strip of app background shows below the page.
+                .ignoresSafeArea(.container, edges: .bottom)
             }
             if isExhausted { limitOverlay }
         }
