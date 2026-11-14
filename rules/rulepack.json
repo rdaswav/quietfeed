@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "packVersion": 2,
+  "packVersion": 3,
   "updated": "2026-11-14",
   "sites": [
     {
@@ -67,6 +67,23 @@
       ],
       "contentRules": [],
       "canaries": ["#screen-root", "[role=\"tablist\"]"]
+    },
+    {
+      "id": "tiktok",
+      "name": "TikTok",
+      "homeURL": "https://www.tiktok.com/",
+      "allowedHosts": ["tiktok.com", "tiktokcdn.com", "tiktokcdn-us.com", "google.com", "apple.com", "facebook.com"],
+      "pathRules": [
+        { "pattern": "^/(explore|live)(/|$)", "action": "redirect", "to": "/" }
+      ],
+      "hideSelectors": [
+        "a[data-e2e=\"discover-icon\"]"
+      ],
+      "hideByText": [
+        { "text": "Open app", "within": "button", "closest": "button" }
+      ],
+      "contentRules": [],
+      "canaries": ["a[data-e2e=\"home-icon\"]"]
     }
   ]
 }

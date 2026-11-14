@@ -17,6 +17,7 @@ public struct LimitSettings: Codable, Equatable, Sendable {
             "instagram": LimitSettings.defaultBudgetMinutes,
             "youtube": LimitSettings.defaultBudgetMinutes,
             "facebook": LimitSettings.defaultBudgetMinutes,
+            "tiktok": LimitSettings.defaultBudgetMinutes,
         ],
         extensionMinutes: Int = 5,
         maxExtensionsPerDay: Int = 2,

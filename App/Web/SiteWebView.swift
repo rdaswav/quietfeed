@@ -13,6 +13,7 @@ enum SiteWebViewFactory {
         case "instagram": return UUID(uuidString: "6F1B7A10-0001-4C0D-9A11-51F000000001")!
         case "youtube": return UUID(uuidString: "6F1B7A10-0002-4C0D-9A11-51F000000002")!
         case "facebook": return UUID(uuidString: "6F1B7A10-0003-4C0D-9A11-51F000000003")!
+        case "tiktok": return UUID(uuidString: "6F1B7A10-0004-4C0D-9A11-51F000000004")!
         default: return UUID(uuidString: "6F1B7A10-00FF-4C0D-9A11-51F0000000FF")!
         }
     }

@@ -20,6 +20,7 @@ You need an iPhone on iOS 18 or later.
 - Scroll the Instagram feed and open a profile. Check there are no Reels, Explore or suggested posts.
 - On YouTube, check Shorts are gone and a Shorts link opens as a normal video.
 - On Facebook, check Reels and suggested content are gone.
+- On TikTok (early), check the Discover tab and the Open app pill are gone. The For You feed itself stays, so use the daily limit.
 - In Settings, set a short daily limit for one site and use it up. Check the calm screen appears, and that adding time makes you wait.
 - Try posting a photo from a site. This is where the mobile websites are weakest.
 
@@ -39,4 +40,4 @@ Tell me which site, what screen, what you expected and what happened. A screensh
 
 In TestFlight you can also send feedback straight from the app: take a screenshot and tap **Share Beta Feedback**.
 
-Quiet Feed is not affiliated with or endorsed by Instagram, YouTube, Facebook or Meta.
+Quiet Feed is not affiliated with or endorsed by Instagram, YouTube, Facebook, TikTok or Meta.

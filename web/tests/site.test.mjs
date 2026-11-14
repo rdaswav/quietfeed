@@ -41,7 +41,7 @@ test("the landing page is self contained: no scripts and no requests to other si
 
 test("the landing page keeps the honest claims", () => {
   const page = readFileSync(join(root, "site", "index.html"), "utf8");
-  assert.ok(page.includes("Not affiliated with Instagram, YouTube, Facebook or Meta."));
+  assert.ok(page.includes("Not affiliated with Instagram, YouTube, Facebook, TikTok or Meta."));
   assert.ok(page.includes("Early and honest"));
   assert.ok(!/five words/i.test(page));
   assert.ok(!/\[TESTFLIGHT LINK\]/.test(page));

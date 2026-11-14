@@ -252,3 +252,40 @@ test("a debug switch can bring back display none to compare", () => {
   assert.ok(dom.window.document.getElementById("qf-style").textContent.includes("[data-qf-hidden] { display: none"));
   dom.window.close();
 });
+
+test("tiktok rules hide the Discover tab and the Open app pill and leave the rest", async () => {
+  const { window, document } = load({ siteId: "tiktok", html: "tiktok-home.html", url: "https://www.tiktok.com/" });
+  await sleep(400);
+  assert.ok(hidden(window, document.getElementById("tab-discover")));
+  assert.ok(collapsed(window, document.getElementById("open-app")) || hidden(window, document.getElementById("open-app")));
+  assert.equal(document.getElementById("open-app").getAttribute("data-qf-hidden"), "1");
+  for (const id of ["tab-home", "tab-inbox", "tab-profile", "search", "menu", "video-1"]) {
+    assert.ok(!hidden(window, document.getElementById(id)), id);
+    assert.ok(!document.getElementById(id).hasAttribute("data-qf-hidden"), id);
+  }
+});
+
+test("tiktok explore and live paths go home", () => {
+  const redirects = [];
+  for (const path of ["/explore", "/explore/x", "/live", "/live/y"]) {
+    const { window } = load({
+      siteId: "tiktok", html: "tiktok-home.html", url: `https://www.tiktok.com${path}`,
+      preHooks: { replace: (u) => redirects.push([path, u]) },
+    });
+    window.__QF_TEST__.checkPath();
+  }
+  assert.ok(redirects.length >= 4);
+  for (const [, to] of redirects) assert.equal(to, "/");
+});
+
+test("tiktok is left alone on its home and following paths", () => {
+  for (const path of ["/", "/following", "/@someone"]) {
+    const redirects = [];
+    const { window } = load({
+      siteId: "tiktok", html: "tiktok-home.html", url: `https://www.tiktok.com${path}`,
+      preHooks: { replace: (u) => redirects.push(u) },
+    });
+    window.__QF_TEST__.checkPath();
+    assert.equal(redirects.length, 0, path);
+  }
+});

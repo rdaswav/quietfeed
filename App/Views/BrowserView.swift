@@ -84,6 +84,16 @@ struct BrowserView: View {
                     onHealth: { siteId, report in
                         model.recordHealth(report, for: siteId)
                         showNotice(for: report.hiddenCount)
+                        #if DEBUG
+                        // `-qfAutoOutline` saves the outline once the page has settled, with no menu to tap.
+                        if UserDefaults.standard.bool(forKey: "qfAutoOutline") {
+                            let delay = UserDefaults.standard.double(forKey: "qfAutoOutlineDelay")
+                            Task {
+                                try? await Task.sleep(for: .seconds(delay))
+                                outlineNote = await controller.savePageOutline(siteId: siteId)
+                            }
+                        }
+                        #endif
                     }
                 )
                 .overlay(alignment: .top) { noticeStrip }

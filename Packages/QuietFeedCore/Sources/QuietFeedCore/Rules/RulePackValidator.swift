@@ -20,7 +20,7 @@ public enum RulePackValidator {
     public static let maxSites = 10
     public static let maxListEntries = 200
     public static let maxSelectorLength = 300
-    public static let knownSiteIds: Set<String> = ["instagram", "youtube", "facebook"]
+    public static let knownSiteIds: Set<String> = ["instagram", "youtube", "facebook", "tiktok"]
     /// ">" is allowed as the CSS child combinator. The rest can break out of a CSS rule or a tag.
     public static let forbiddenSelectorCharacters = Set("{}<;")
 

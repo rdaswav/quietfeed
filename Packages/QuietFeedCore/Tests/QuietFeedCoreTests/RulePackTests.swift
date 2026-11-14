@@ -16,8 +16,8 @@ final class RulePackTests: XCTestCase {
         let pack = try JSONDecoder().decode(RulePack.self, from: data)
         XCTAssertEqual(pack.schemaVersion, 1)
         XCTAssertGreaterThanOrEqual(pack.packVersion, 1)  // rises whenever the rules are tuned
-        XCTAssertEqual(pack.sites.count, 3)
-        XCTAssertEqual(pack.sites.map(\.id), ["instagram", "youtube", "facebook"])
+        XCTAssertEqual(pack.sites.count, 4)
+        XCTAssertEqual(pack.sites.map(\.id), ["instagram", "youtube", "facebook", "tiktok"])
         let yt = try XCTUnwrap(pack.sites.first { $0.id == "youtube" })
         XCTAssertEqual(yt.pathRules.first?.action, .redirect)
         XCTAssertEqual(yt.pathRules.first?.to, "/watch?v=$1")

@@ -4,7 +4,7 @@
 
 **Website: https://rdaswav.github.io/quietfeed/**
 
-Quiet Feed is a small iPhone app that opens Instagram, YouTube and Facebook as their mobile websites inside its own browser and hides the parts built to keep you scrolling: Reels, Shorts, Explore and "suggested for you" content. Your feed, stories, messages and subscriptions stay.
+Quiet Feed is a small iPhone app that opens Instagram, YouTube, Facebook and TikTok (early) as their mobile websites inside its own browser and hides the parts built to keep you scrolling: Reels, Shorts, Explore and "suggested for you" content. Your feed, stories, messages and subscriptions stay.
 
 > **Status: early.** The app is built and runs on the author's own iPhone, but the hide rules for each site still need tuning against live pages, and it has only had light daily use. The screens below are mockups of the design, not screenshots. See [Roadmap](#roadmap) and [Limitations](#limitations).
 
@@ -126,8 +126,9 @@ The mark is a sage rounded square with two faint lines and one solid line: the f
 - The mobile sites do less than the native apps: no push notifications, and some message extras (voice notes, calls) and story tools are missing.
 - Hide rules depend on each site's page structure and will break when a site changes. Keep `rules/rulepack.json` up to date.
 - Quiet Feed is for personal use. It does not scrape, automate or alter your account, and it only hides parts of pages on your own device.
-- Not affiliated with or endorsed by Instagram, YouTube, Facebook or Meta. Those names belong to their owners.
+- TikTok is early: its mobile site is nearly all short video, so Quiet Feed hides the Discover tab and the Open app pill and counts your time, but the For You feed itself stays. Snapchat has no mobile web app to wrap (its web client is desktop only), so it is not supported.
+- Not affiliated with or endorsed by Instagram, YouTube, Facebook, TikTok or Meta. Those names belong to their owners.
 
 ## Licence
 
-[MIT](LICENSE). The Instagram, YouTube and Facebook names belong to their owners.
+[MIT](LICENSE). The Instagram, YouTube, Facebook and TikTok names belong to their owners.

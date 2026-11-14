@@ -30,7 +30,7 @@ final class RulePackValidatorTests: XCTestCase {
             .deletingLastPathComponent().appendingPathComponent("rules/rulepack.json")
         let result = RulePackValidator.validate(try Data(contentsOf: url))
         guard case .success(let p) = result else { return XCTFail("\(result)") }
-        XCTAssertEqual(p.sites.count, 3)
+        XCTAssertEqual(p.sites.count, 4)
     }
 
     func testGoodPackPasses() { XCTAssertNil(run(pack())) }
@@ -55,8 +55,8 @@ final class RulePackValidatorTests: XCTestCase {
     }
 
     func testUnknownSiteId() {
-        let p = RulePack(schemaVersion: 1, packVersion: 1, updated: "x", sites: [goodSite(id: "tiktok")])
-        XCTAssertEqual(run(p), .unknownSiteId("tiktok"))
+        let p = RulePack(schemaVersion: 1, packVersion: 1, updated: "x", sites: [goodSite(id: "myspace")])
+        XCTAssertEqual(run(p), .unknownSiteId("myspace"))
     }
 
     func testListTooLong() {
