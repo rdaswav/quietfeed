@@ -2,6 +2,8 @@
   <img src="docs/assets/banner.svg" alt="Quiet Feed: Instagram, YouTube and Facebook, without the endless parts." width="100%">
 </p>
 
+**Website: https://rdaswav.github.io/quietfeed/**
+
 Quiet Feed is a small iPhone app that opens Instagram, YouTube and Facebook as their mobile websites inside its own browser and hides the parts built to keep you scrolling: Reels, Shorts, Explore and "suggested for you" content. Your feed, stories, messages and subscriptions stay.
 
 > **Status: early.** The app is built and runs on the author's own iPhone, but the hide rules for each site still need tuning against live pages, and it has only had light daily use. The screens below are mockups of the design, not screenshots. See [Roadmap](#roadmap) and [Limitations](#limitations).

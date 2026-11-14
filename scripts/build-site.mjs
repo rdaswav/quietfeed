@@ -2,7 +2,7 @@
 // Builds the website into a folder: copies site/, and turns docs/PRIVACY.md into privacy.html so the policy has one source.
 // Usage: node scripts/build-site.mjs [out-folder]   (default: dist-site)
 import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -37,7 +37,7 @@ export function markdownToHtml(md) {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const out = join(root, process.argv[2] ?? "dist-site");
+  const out = resolve(root, process.argv[2] ?? "dist-site"); // an absolute path stays as given
   rmSync(out, { recursive: true, force: true });
   mkdirSync(out, { recursive: true });
   cpSync(join(root, "site"), out, { recursive: true, filter: (src) => !src.endsWith("page.template.html") });
