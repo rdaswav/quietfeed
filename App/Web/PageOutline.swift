@@ -105,7 +105,15 @@ enum PageOutline {
           qfHidden: document.querySelectorAll("[data-qf-hidden]").length,
           fullScanMs: Math.round(ms * 10) / 10, scanned: looked,
           scrollY: Math.round(scrollY), docHeight: document.documentElement.scrollHeight,
-          hiddenElements: hiddenList
+          hiddenElements: hiddenList,
+          appearance: {
+            prefersDark: window.matchMedia("(prefers-color-scheme: dark)").matches,
+            bodyBackground: getComputedStyle(document.body).backgroundColor,
+            htmlBackground: getComputedStyle(document.documentElement).backgroundColor,
+            htmlColorScheme: getComputedStyle(document.documentElement).colorScheme,
+            metaColorScheme: (document.querySelector('meta[name="color-scheme"]') || {}).content || null,
+            themeColor: (document.querySelector('meta[name="theme-color"]') || {}).content || null
+          }
         },
         nodes: out
       });
