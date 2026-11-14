@@ -19,10 +19,12 @@ struct SettingsView: View {
     @State private var serverInvalid = false
     @State private var phraseDraft = ""
     @State private var gate: LimitGate?
+    @State private var draft = LimitDraft()
     @State private var shieldGate: ShieldGate?
 
     var body: some View {
         Form {
+            pendingSection
             limitsSection
             frictionSection
             officialAppsSection
@@ -37,17 +39,19 @@ struct SettingsView: View {
             serverText = model.serverURLText
             phraseDraft = model.limits.frictionPhrase
         }
+        .onDisappear { draft.discard() }
         .sheet(item: $gate) { pending in
             FrictionGate(
                 title: pending.title,
                 countdownSeconds: model.frictionCountdownSeconds,
                 phrase: model.limits.frictionPhrase,
                 onConfirm: {
-                    model.commitLimits(pending.settings)
+                    draft.applyPending(to: model)
                     phraseDraft = model.limits.frictionPhrase
                     gate = nil
                 },
-                onCancel: { gate = nil; phraseDraft = model.limits.frictionPhrase }
+                // Cancelling keeps the waiting changes so they can be tried again or discarded.
+                onCancel: { gate = nil }
             )
         }
         .sheet(item: $shieldGate) { pending in
@@ -63,27 +67,59 @@ struct SettingsView: View {
 
     // MARK: Limits and friction
 
-    /// Tightening applies at once. Loosening opens the friction gate and applies only if it is passed.
-    private func change(_ title: String, _ edit: (inout LimitSettings) -> Void) {
-        var new = model.limits
-        edit(&new)
-        if model.proposeLimits(new) == .needsGate {
-            gate = LimitGate(title: title, settings: new)
-        }
+    private var working: LimitSettings { draft.working(from: model.limits) }
+
+    /// Tightening applies at once. Loosening waits in the draft and is applied together through one gate.
+    private func change(_ edit: (inout LimitSettings) -> Void) {
+        draft.edit(edit, model: model)
+        if !draft.hasPending { phraseDraft = model.limits.frictionPhrase }
     }
 
     private func budgetBinding(_ site: SiteRules) -> Binding<Int> {
         Binding(
-            get: { model.limits.budgetMinutes(site: site.id) },
-            set: { v in change("Raise the daily limit for \(site.name)") { $0.dailyBudgetMinutesBySite[site.id] = v } }
+            get: { working.budgetMinutes(site: site.id) },
+            set: { v in change { $0.dailyBudgetMinutesBySite[site.id] = v } }
         )
     }
 
-    private func intBinding(_ keyPath: WritableKeyPath<LimitSettings, Int>, title: String) -> Binding<Int> {
+    private func intBinding(_ keyPath: WritableKeyPath<LimitSettings, Int>) -> Binding<Int> {
         Binding(
-            get: { model.limits[keyPath: keyPath] },
-            set: { v in change(title) { $0[keyPath: keyPath] = v } }
+            get: { working[keyPath: keyPath] },
+            set: { v in change { $0[keyPath: keyPath] = v } }
         )
+    }
+
+    /// Shown only while loosening changes are waiting.
+    @ViewBuilder
+    private var pendingSection: some View {
+        if draft.hasPending {
+            let count = draft.waitingCount(from: model.limits)
+            Section {
+                Text(count == 1 ? "1 change is waiting." : "\(count) changes are waiting.")
+                    .font(Theme.bodyFont)
+                    .foregroundStyle(Theme.text)
+                    .listRowBackground(Theme.surface)
+                Button {
+                    if let pending = draft.pending {
+                        gate = LimitGate(title: "Apply your changes to limits", settings: pending)
+                    }
+                } label: {
+                    Text("Apply changes").foregroundStyle(Theme.accent)
+                }
+                .listRowBackground(Theme.surface)
+                Button {
+                    draft.discard()
+                    phraseDraft = model.limits.frictionPhrase
+                } label: {
+                    Text("Discard").foregroundStyle(Theme.textMuted)
+                }
+                .listRowBackground(Theme.surface)
+            } footer: {
+                Text("These loosen your limits, so applying them asks you to wait once, for all of them together. Leaving this screen drops them.")
+                    .font(Theme.captionFont)
+                    .foregroundStyle(Theme.textMuted)
+            }
+        }
     }
 
     private var limitsSection: some View {
@@ -93,16 +129,16 @@ struct SettingsView: View {
                     v == 0 ? "No limit" : "\(v) min"
                 }
             }
-            stepperRow("Extension length", value: intBinding(\.extensionMinutes, title: "Make extensions longer"),
+            stepperRow("Extension length", value: intBinding(\.extensionMinutes),
                        range: 1...30, step: 1) { "\($0) min" }
-            stepperRow("Extensions per day", value: intBinding(\.maxExtensionsPerDay, title: "Allow more extensions"),
+            stepperRow("Extensions per day", value: intBinding(\.maxExtensionsPerDay),
                        range: 0...10, step: 1) { "\($0)" }
-            stepperRow("Filter pauses per day", value: intBinding(\.maxFilterPausesPerDay, title: "Allow more filter pauses"),
+            stepperRow("Filter pauses per day", value: intBinding(\.maxFilterPausesPerDay),
                        range: 0...10, step: 1) { "\($0)" }
         } header: {
             Text("Daily limits").foregroundStyle(Theme.textMuted)
         } footer: {
-            Text("Lowering a limit applies at once. Raising one asks you to wait first.")
+            Text("Lowering a limit applies at once. Raising one waits until you apply it.")
                 .font(Theme.captionFont)
                 .foregroundStyle(Theme.textMuted)
         }
@@ -110,7 +146,7 @@ struct SettingsView: View {
 
     private var frictionSection: some View {
         Section {
-            stepperRow("Countdown", value: intBinding(\.frictionCountdownSeconds, title: "Shorten the countdown"),
+            stepperRow("Countdown", value: intBinding(\.frictionCountdownSeconds),
                        range: 5...120, step: 5) { "\($0) s" }
             VStack(alignment: .leading, spacing: 4) {
                 Text("Phrase")
@@ -134,7 +170,7 @@ struct SettingsView: View {
             phraseDraft = model.limits.frictionPhrase
             return
         }
-        change("Change the phrase") { $0.frictionPhrase = trimmed }
+        change { $0.frictionPhrase = trimmed }
     }
 
     private func stepperRow(
