@@ -6,7 +6,29 @@ import QuietFeedCore
 /// Lets the menu act on the web view that SiteWebView creates.
 @Observable
 final class BrowserController {
-    @ObservationIgnored weak var webView: WKWebView?
+    @ObservationIgnored weak var webView: WKWebView? {
+        didSet {
+            urlObservation = webView?.observe(\.url, options: [.initial, .new]) { [weak self] view, _ in
+                let path = view.url?.path ?? ""
+                Task { @MainActor in self?.currentPath = path }
+            }
+        }
+    }
+    @ObservationIgnored private var urlObservation: NSKeyValueObservation?
+    /// Path of the page on show, so the tab bar can mark the current tab.
+    var currentPath = ""
+
+    /// Opens a path on the site's own host.
+    func open(path: String, on site: SiteRules) {
+        guard let base = URL(string: site.homeURL), let url = URL(string: path, relativeTo: base) else { return }
+        webView?.load(URLRequest(url: url.absoluteURL))
+    }
+
+    /// Opens the signed-in profile, using the link the site's own bar held before it was hidden.
+    func openProfile(on site: SiteRules) async {
+        let href = try? await webView?.evaluateJavaScript("window.__qfProfileHref || ''") as? String
+        if let href, !href.isEmpty { open(path: href, on: site) }
+    }
 
     func reload() {
         webView?.reload()
@@ -68,6 +90,8 @@ struct BrowserView: View {
 
     private var state: BudgetEngine.State { model.budgetState(for: site.id) }
 
+    private var nav: SiteNav? { SiteNav.forSite(site.id) }
+
     private var isExhausted: Bool {
         if case .exhausted = state { return true }
         return false
@@ -98,6 +122,7 @@ struct BrowserView: View {
                 )
                 .overlay(alignment: .top) { noticeStrip }
                 if hasLimit { bottomBar }
+                if let nav { navBar(nav) }
             }
             if isExhausted { limitOverlay }
         }
@@ -327,5 +352,38 @@ struct BrowserView: View {
         .background(Theme.bg)
         .overlay(alignment: .top) { Rectangle().fill(Theme.line).frame(height: Theme.hairline) }
         .accessibilityElement(children: .combine)
+    }
+
+    // MARK: Our own tab bar (the site's is hidden)
+
+    private func navBar(_ nav: SiteNav) -> some View {
+        HStack(spacing: 0) {
+            ForEach(nav.items) { item in
+                let selected = item.matches(controller.currentPath)
+                Button {
+                    if item.isProfile {
+                        Task { await controller.openProfile(on: site) }
+                    } else if let path = item.path {
+                        controller.open(path: path, on: site)
+                    }
+                } label: {
+                    VStack(spacing: 3) {
+                        Image(systemName: selected ? item.symbol + ".fill" : item.symbol)
+                            .font(Font.system(size: 20, weight: .regular))
+                        Text(item.label)
+                            .font(Font.system(size: 11, weight: .medium))
+                    }
+                    .foregroundStyle(selected ? Theme.accent : Theme.textMuted)
+                    .frame(maxWidth: .infinity, minHeight: 50)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(item.label)
+                .accessibilityAddTraits(selected ? .isSelected : [])
+            }
+        }
+        .padding(.horizontal, 8)
+        .background(Theme.bg)
+        .overlay(alignment: .top) { Rectangle().fill(Theme.line).frame(height: Theme.hairline) }
     }
 }

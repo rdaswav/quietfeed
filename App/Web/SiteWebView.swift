@@ -66,6 +66,10 @@ enum SiteWebViewFactory {
 
         config.userContentController.addUserScript(userScript(site: site, runtimeSource: runtimeSource))
         config.userContentController.add(WeakScriptMessageHandler(messageHandler), name: "quietfeed")
+        if let nav = SiteNav.forSite(site.id) {
+            config.userContentController.addUserScript(WKUserScript(
+                source: nav.hideScript, injectionTime: .atDocumentEnd, forMainFrameOnly: true, in: .page))
+        }
 
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.customUserAgent = userAgent
