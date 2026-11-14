@@ -68,19 +68,7 @@ struct SiteNav {
                 ],
                 probeSelector: "[role=\"tablist\"] [role=\"tab\"][aria-label^=\"feed\"]",
                 allowsProfile: false)
-        case "tiktok":
-            // Discover, Live and the create button are left out. The site's own links carry data-e2e names.
-            return SiteNav(
-                items: [
-                    Item(id: "home", label: "Home", symbol: "house", path: "/",
-                         matches: { $0 == "/" || $0 == "" }),
-                    Item(id: "inbox", label: "Inbox", symbol: "tray", path: "/messages",
-                         matches: { $0.hasPrefix("/messages") }),
-                    Item(id: "profile", label: "Profile", symbol: "person.crop.circle", path: "/profile",
-                         matches: { $0.hasPrefix("/profile") || $0.hasPrefix("/@") }),
-                ],
-                probeSelector: "a[data-e2e=\"home-icon\"]",
-                allowsProfile: false)
+        // TikTok has no bar of ours: it is parked, so the site shows its own (see the project changelog).
         default:
             return nil
         }
