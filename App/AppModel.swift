@@ -133,6 +133,21 @@ final class AppModel {
         return true
     }
 
+    /// True when the user has chosen their own rules server. A device that already had a saved address
+    /// (before the official source existed) is in this state, so nothing changes for it.
+    var usesCustomRules: Bool {
+        guard let url = URL(string: serverURLText), url.host != nil else { return false }
+        return !serverURLText.isEmpty
+    }
+
+    /// False while the build has no public key for the official source, so official updates are not on yet.
+    var officialRulesAreOn: Bool { !OfficialRules.publicKeys.isEmpty }
+
+    /// Switches back to the official source and forgets the custom address.
+    func useOfficialRules() {
+        setServerURL("")
+    }
+
     func refreshRules() async {
         guard let store, !isChecking else { return }
         isChecking = true

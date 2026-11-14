@@ -20,6 +20,7 @@ struct SettingsView: View {
     @State private var phraseDraft = ""
     @State private var gate: LimitGate?
     @State private var draft = LimitDraft()
+    @State private var wantsCustom = false
     @State private var shieldGate: ShieldGate?
 
     var body: some View {
@@ -37,6 +38,7 @@ struct SettingsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             serverText = model.serverURLText
+            wantsCustom = model.usesCustomRules
             phraseDraft = model.limits.frictionPhrase
         }
         .onDisappear { draft.discard() }
@@ -285,25 +287,39 @@ struct SettingsView: View {
                     .foregroundStyle(Theme.textMuted)
                     .listRowBackground(Theme.surface)
             }
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Server address")
+            Picker("Rules source", selection: sourceChoice) {
+                Text("Official").tag(false)
+                Text("Custom server").tag(true)
+            }
+            .pickerStyle(.segmented)
+            .listRowBackground(Theme.surface)
+            if !wantsCustom && !model.officialRulesAreOn {
+                Text("Official updates are not switched on in this build yet, so the rules built into the app are used.")
                     .font(Theme.captionFont)
                     .foregroundStyle(Theme.textMuted)
-                TextField("Optional, for example http://your-server:8787/rulepack.json", text: $serverText)
-                    .font(Theme.bodyFont)
-                    .foregroundStyle(Theme.text)
-                    .keyboardType(.URL)
-                    .textContentType(.URL)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .onSubmit { commitServer() }
-                if serverInvalid {
-                    Text("Enter an address starting with http:// or https://")
-                        .font(Theme.captionFont)
-                        .foregroundStyle(Theme.warn)
-                }
+                    .listRowBackground(Theme.surface)
             }
-            .listRowBackground(Theme.surface)
+            if wantsCustom {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Server address")
+                        .font(Theme.captionFont)
+                        .foregroundStyle(Theme.textMuted)
+                    TextField("For example http://your-server:8787/rulepack.json", text: $serverText)
+                        .font(Theme.bodyFont)
+                        .foregroundStyle(Theme.text)
+                        .keyboardType(.URL)
+                        .textContentType(.URL)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .onSubmit { commitServer() }
+                    if serverInvalid {
+                        Text("Enter an address starting with http:// or https://")
+                            .font(Theme.captionFont)
+                            .foregroundStyle(Theme.warn)
+                    }
+                }
+                .listRowBackground(Theme.surface)
+            }
             Button {
                 commitServer()
                 Task { await model.refreshRules() }
@@ -324,13 +340,32 @@ struct SettingsView: View {
             }
         } header: {
             Text("Rules").foregroundStyle(Theme.textMuted)
+        } footer: {
+            Text("Official rules are checked against a signature built into the app. A custom server is your own and is not checked.")
+                .font(Theme.captionFont)
+                .foregroundStyle(Theme.textMuted)
         }
+    }
+
+    /// Official clears the custom address. Custom shows the address field and only takes effect once a valid address is saved.
+    private var sourceChoice: Binding<Bool> {
+        Binding(
+            get: { wantsCustom },
+            set: { custom in
+                wantsCustom = custom
+                if !custom {
+                    model.useOfficialRules()
+                    serverText = ""
+                    serverInvalid = false
+                }
+            }
+        )
     }
 
     private var aboutSection: some View {
         Section {
             row("Version", appVersion)
-            Text("Nothing leaves your phone. The only network call is the rules check on your own network.")
+            Text("Nothing leaves your phone. The only network call is the rules check, from the official source or from your own server if you chose one.")
                 .font(Theme.captionFont)
                 .foregroundStyle(Theme.textMuted)
                 .listRowBackground(Theme.surface)
@@ -350,6 +385,7 @@ struct SettingsView: View {
     }
 
     private func commitServer() {
+        guard wantsCustom else { return }
         serverInvalid = !model.setServerURL(serverText)
         if !serverInvalid { serverText = model.serverURLText }
     }
