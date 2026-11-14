@@ -1,9 +1,10 @@
 import SwiftUI
 import QuietFeedCore
 
-/// The one gate for every loosening action: a countdown, then a typed phrase.
+/// The one gate for every loosening action: a short wait, then a typed phrase. On purpose.
 struct FrictionGate: View {
     let title: String
+    var confirmLabel: String = "Continue"
     let countdownSeconds: Int
     let phrase: String
     let onConfirm: () -> Void
@@ -11,11 +12,13 @@ struct FrictionGate: View {
 
     @State private var remaining: Int
     @State private var typed = ""
+    @FocusState private var fieldFocused: Bool
     @Environment(\.scenePhase) private var scenePhase
 
-    init(title: String, countdownSeconds: Int, phrase: String,
+    init(title: String, confirmLabel: String = "Continue", countdownSeconds: Int, phrase: String,
          onConfirm: @escaping () -> Void, onCancel: @escaping () -> Void) {
         self.title = title
+        self.confirmLabel = confirmLabel
         self.countdownSeconds = countdownSeconds
         self.phrase = phrase
         self.onConfirm = onConfirm
@@ -27,77 +30,69 @@ struct FrictionGate: View {
         FrictionPolicy.phraseMatches(typed: typed, phrase: phrase)
     }
 
+    private var waiting: Bool { remaining > 0 }
+
     var body: some View {
-        GeometryReader { geo in
-            ScrollView { content.frame(minHeight: geo.size.height) }
-                .scrollBounceBehavior(.basedOnSize)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                Text(title)
+                    .font(Theme.sheetTitleFont)
+                    .foregroundStyle(Theme.text)
+                    .accessibilityAddTraits(.isHeader)
+                Text("It takes a short wait and a typed phrase. That\u{2019}s on purpose.")
+                    .font(Theme.bodyFont)
+                    .foregroundStyle(Theme.textMuted)
+                countdownRow
+                phraseField
+                HStack(spacing: 12) {
+                    Button(confirmLabel, action: onConfirm)
+                        .buttonStyle(PrimaryButtonStyle())
+                        .disabled(waiting || !phraseMatches)
+                    Button("Never mind", action: onCancel)
+                        .buttonStyle(SecondaryButtonStyle())
+                }
+                .padding(.top, 4)
+            }
+            .padding(24)
         }
+        .scrollBounceBehavior(.basedOnSize)
         .background(Theme.bg)
         .task(id: scenePhase) { await runCountdown() }
     }
 
-    private var content: some View {
-        VStack(spacing: 20) {
-            Text(title)
-                .font(Theme.captionFont)
-                .foregroundStyle(Theme.textMuted)
-                .multilineTextAlignment(.center)
-                .accessibilityAddTraits(.isHeader)
-            if remaining > 0 {
-                countdownStage
-            } else {
-                phraseStage
-            }
-            Button("Cancel", action: onCancel)
-                .font(Theme.bodyFont)
-                .foregroundStyle(Theme.textMuted)
-                .padding(.top, 4)
-        }
-        .padding(Theme.gutter)
-        .frame(maxWidth: .infinity)
-    }
-
-    private var countdownStage: some View {
-        VStack(spacing: 12) {
-            Text("Wait")
-                .font(Theme.titleFont)
-                .foregroundStyle(Theme.text)
+    private var countdownRow: some View {
+        HStack(spacing: 14) {
             Text(TimeText.clock(remaining))
-                .font(Font.largeTitle.monospacedDigit())
-                .foregroundStyle(Theme.text)
-                .accessibilityLabel("\(remaining) seconds left")
-            Text("Leaving the app restarts the timer.")
+                .font(Font.system(size: 18, weight: .semibold).monospacedDigit())
+                .foregroundStyle(Theme.onAccentSoft)
+                .frame(width: 56, height: 56)
+                .background(Theme.accentSoft, in: Circle())
+                .accessibilityLabel(waiting ? "\(remaining) seconds left" : "Done waiting")
+            Text(waiting
+                 ? "Waiting. Leaving the app restarts the timer."
+                 : "Done waiting. Type the phrase to continue.")
                 .font(Theme.captionFont)
                 .foregroundStyle(Theme.textMuted)
         }
     }
 
-    private var phraseStage: some View {
-        VStack(spacing: 12) {
-            Text("Type to continue:")
+    private var phraseField: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Type: \(phrase)")
+                .font(Theme.captionFont.weight(.semibold))
+                .foregroundStyle(Theme.text)
+            TextField(phrase, text: $typed)
                 .font(Theme.bodyFont)
                 .foregroundStyle(Theme.text)
-            Text("\u{201C}\(phrase)\u{201D}")
-                .font(Theme.bodyFont)
-                .foregroundStyle(Theme.textMuted)
-                .multilineTextAlignment(.center)
-            TextField("", text: $typed)
-                .textFieldStyle(.plain)
-                .padding(12)
-                .background(Theme.surface, in: RoundedRectangle(cornerRadius: Theme.buttonRadius))
-                .overlay(RoundedRectangle(cornerRadius: Theme.buttonRadius).stroke(Theme.line, lineWidth: Theme.hairline))
+                .focused($fieldFocused)
+                .disabled(waiting)
+                .padding(.horizontal, 14)
+                .frame(height: Theme.buttonHeight)
+                .background(Theme.bg, in: RoundedRectangle(cornerRadius: Theme.fieldRadius))
+                .overlay(RoundedRectangle(cornerRadius: Theme.fieldRadius).stroke(Theme.lineStrong, lineWidth: Theme.hairline))
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .accessibilityLabel("Type the phrase")
-            Button(action: onConfirm) {
-                Text("Continue")
-                    .font(Theme.bodyFont.weight(.semibold))
-                    .foregroundStyle(Theme.bg)
-                    .frame(maxWidth: .infinity, minHeight: 44)
-                    .background(Theme.accent.opacity(phraseMatches ? 1 : 0.4),
-                                in: RoundedRectangle(cornerRadius: Theme.buttonRadius))
-            }
-            .disabled(!phraseMatches)
         }
     }
 
@@ -112,22 +107,23 @@ struct FrictionGate: View {
             if Task.isCancelled { return }
             remaining -= 1
         }
+        fieldFocused = true
     }
 }
 
-#Preview("Countdown") {
-    FrictionGate(title: "Add 5 minutes to Instagram", countdownSeconds: 27, phrase: "I am choosing to scroll",
-                 onConfirm: {}, onCancel: {})
+#Preview("Waiting") {
+    FrictionGate(title: "Take 5 more minutes?", confirmLabel: "Add 5 min", countdownSeconds: 42,
+                 phrase: "I am choosing this", onConfirm: {}, onCancel: {})
 }
 
-#Preview("Phrase") {
-    FrictionGate(title: "Add 5 minutes to Instagram", countdownSeconds: 0, phrase: "I am choosing to scroll",
-                 onConfirm: {}, onCancel: {})
+#Preview("Ready, dark") {
+    FrictionGate(title: "Take 5 more minutes?", confirmLabel: "Add 5 min", countdownSeconds: 0,
+                 phrase: "I am choosing this", onConfirm: {}, onCancel: {})
         .preferredColorScheme(.dark)
 }
 
 #Preview("Largest text") {
-    FrictionGate(title: "Add 5 minutes to Instagram", countdownSeconds: 0, phrase: "I am choosing to scroll",
-                 onConfirm: {}, onCancel: {})
+    FrictionGate(title: "Take 5 more minutes?", confirmLabel: "Add 5 min", countdownSeconds: 0,
+                 phrase: "I am choosing this", onConfirm: {}, onCancel: {})
         .dynamicTypeSize(.accessibility5)
 }

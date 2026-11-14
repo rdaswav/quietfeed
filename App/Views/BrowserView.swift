@@ -47,6 +47,7 @@ final class BrowserController {
 private struct GateRequest: Identifiable {
     let id = UUID()
     let title: String
+    var confirmLabel: String = "Continue"
     let onConfirm: () -> Void
 }
 
@@ -59,6 +60,9 @@ struct BrowserView: View {
     #endif
     @State private var gate: GateRequest?
     @State private var pauseRemaining: Int?
+    /// How many things were just hidden, shown for a few seconds as a quiet notice.
+    @State private var hiddenNotice: Int?
+    @State private var noticeTask: Task<Void, Never>?
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dismiss) private var dismiss
 
@@ -77,10 +81,13 @@ struct BrowserView: View {
                     site: site,
                     runtimeSource: SiteWebViewFactory.runtimeSource(),
                     controller: controller,
-                    onHealth: { siteId, report in model.recordHealth(report, for: siteId) }
+                    onHealth: { siteId, report in
+                        model.recordHealth(report, for: siteId)
+                        showNotice(for: report.hiddenCount)
+                    }
                 )
-                // Extends under the home indicator so no strip of app background shows below the page.
-                .ignoresSafeArea(.container, edges: .bottom)
+                .overlay(alignment: .top) { noticeStrip }
+                if hasLimit { bottomBar }
             }
             if isExhausted { limitOverlay }
         }
@@ -94,6 +101,7 @@ struct BrowserView: View {
         .sheet(item: $gate) { request in
             FrictionGate(
                 title: request.title,
+                confirmLabel: request.confirmLabel,
                 countdownSeconds: model.frictionCountdownSeconds,
                 phrase: model.limits.frictionPhrase,
                 onConfirm: { gate = nil; request.onConfirm() },
@@ -133,15 +141,17 @@ struct BrowserView: View {
 
     private var limitOverlay: some View {
         let allowed = model.allowedSeconds(for: site.id) ?? 0
+        let minutes = model.limits.extensionMinutes
         return LimitOverlay(
             siteName: site.name,
             minutesUsed: allowed / 60,
-            extensionMinutes: model.limits.extensionMinutes,
+            resetTimeText: model.resetTimeText,
+            extensionMinutes: minutes,
             extensionsLeft: model.extensionsLeft(for: site.id),
             maxExtensions: model.limits.maxExtensionsPerDay,
             onHome: { dismiss() },
             onExtend: {
-                gate = GateRequest(title: "Add \(model.limits.extensionMinutes) minutes to \(site.name)") {
+                gate = GateRequest(title: "Take \(minutes) more minutes?", confirmLabel: "Add \(minutes) min") {
                     model.grantExtension(siteId: site.id)
                 }
             }
@@ -149,28 +159,68 @@ struct BrowserView: View {
     }
 
     private func requestFilterPause() {
-        gate = GateRequest(title: "Pause filters on \(site.name) for 5 minutes") {
+        gate = GateRequest(title: "Pause the filters on \(site.name) for 5 minutes?", confirmLabel: "Pause filters") {
             model.recordFilterPause(siteId: site.id)
             controller.pauseFilters()
             pauseRemaining = AppModel.filterPauseSeconds
         }
     }
 
-    // MARK: Top bar
+    // MARK: Quiet notice of what was hidden
+
+    private func showNotice(for count: Int) {
+        guard count > 0 else { return }
+        noticeTask?.cancel()
+        withAnimation { hiddenNotice = count }
+        noticeTask = Task {
+            try? await Task.sleep(for: .seconds(4))
+            if !Task.isCancelled { withAnimation { hiddenNotice = nil } }
+        }
+    }
+
+    @ViewBuilder
+    private var noticeStrip: some View {
+        if let count = hiddenNotice {
+            HStack(spacing: 10) {
+                Image(systemName: "minus")
+                    .font(Font.system(size: 14, weight: .bold))
+                    .foregroundStyle(Theme.accent)
+                    .accessibilityHidden(true)
+                Text(count == 1 ? "1 thing hidden" : "\(count) things hidden")
+                    .font(Theme.captionFont)
+                    .foregroundStyle(Theme.text)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14))
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.line, lineWidth: Theme.hairline))
+            .padding(.top, 12)
+            .transition(.opacity)
+            .accessibilityElement(children: .combine)
+        }
+    }
+
+    // MARK: Top bar and usage bar
+
+    private var hasLimit: Bool {
+        if case .unlimited = state { return false }
+        return true
+    }
 
     private var topBar: some View {
-        HStack {
+        HStack(spacing: 8) {
             Button {
                 dismiss()
             } label: {
                 Image(systemName: "chevron.left")
-                    .foregroundStyle(Theme.accent)
-                    .frame(minWidth: 44, minHeight: 44)
+                    .font(Font.system(size: 18, weight: .semibold))
+                    .foregroundStyle(Theme.text)
+                    .frame(width: Theme.touchTarget, height: Theme.touchTarget)
             }
             .accessibilityLabel("Back to Home")
             if let paused = pauseRemaining {
                 Text("Filters paused \(TimeText.clock(paused))")
-                    .font(Theme.timeFont.weight(.semibold))
+                    .font(Theme.timeFont)
                     .foregroundStyle(Theme.warn)
             } else {
                 Text(site.name)
@@ -179,7 +229,7 @@ struct BrowserView: View {
                     .accessibilityAddTraits(.isHeader)
             }
             Spacer()
-            timeLabel
+            timeChip
             Menu {
                 Button("Reload", systemImage: "arrow.clockwise") { controller.reload() }
                 Button("Go to site home", systemImage: "house") { controller.goHome(site) }
@@ -197,13 +247,13 @@ struct BrowserView: View {
             } label: {
                 Image(systemName: "ellipsis")
                     .foregroundStyle(Theme.textMuted)
-                    .frame(minWidth: 44, minHeight: 44)
+                    .frame(width: Theme.touchTarget, height: Theme.touchTarget)
             }
             .accessibilityLabel("More")
         }
-        .padding(.horizontal, Theme.gutter / 2)
-        .frame(minHeight: 44)
-        .background(Theme.surface)
+        .padding(.horizontal, 8)
+        .frame(minHeight: 52)
+        .background(Theme.bg)
         .overlay(alignment: .bottom) {
             Rectangle().fill(Theme.line).frame(height: Theme.hairline)
         }
@@ -212,25 +262,60 @@ struct BrowserView: View {
         #endif
     }
 
+    /// "12:40 left" as a soft sage pill, amber when time is nearly up. Hidden when the site has no limit.
     @ViewBuilder
-    private var timeLabel: some View {
+    private var timeChip: some View {
         switch state {
         case .unlimited:
             EmptyView()
         case .ok(let remaining):
-            Text(TimeText.clock(remaining))
-                .font(Theme.timeFont)
-                .foregroundStyle(Theme.text)
-                .accessibilityLabel("\(TimeText.minutes(remaining)) left")
+            chip("\(TimeText.clock(remaining)) left", fill: Theme.accentSoft, ink: Theme.onAccentSoft,
+                 label: "\(TimeText.minutes(remaining)) left")
         case .warning(let remaining):
-            Text(TimeText.clock(remaining))
-                .font(Theme.timeFont)
-                .foregroundStyle(Theme.warn)
-                .accessibilityLabel("\(remaining) seconds left")
+            chip("\(TimeText.clock(remaining)) left", fill: Theme.warnSoft, ink: Theme.onWarnSoft,
+                 label: "\(remaining) seconds left")
         case .exhausted:
-            Text(TimeText.clock(0))
-                .font(Theme.timeFont)
-                .foregroundStyle(Theme.warn)
+            chip("Done", fill: Theme.warnSoft, ink: Theme.onWarnSoft, label: "Done for today")
         }
+    }
+
+    private func chip(_ text: String, fill: Color, ink: Color, label: String) -> some View {
+        Text(text)
+            .font(Font.system(size: 14, weight: .semibold).monospacedDigit())
+            .foregroundStyle(ink)
+            .padding(.horizontal, 12)
+            .frame(minHeight: 32)
+            .background(fill, in: Capsule())
+            .accessibilityLabel(label)
+    }
+
+    /// "Today's Instagram   17:20 of 30:00 used" with a thin bar.
+    private var bottomBar: some View {
+        let allowed = model.allowedSeconds(for: site.id) ?? 0
+        let remaining: Int = {
+            switch state {
+            case .ok(let r), .warning(let r): return r
+            default: return 0
+            }
+        }()
+        let used = max(0, allowed - remaining)
+        let low: Bool = { if case .warning = state { return true } else { return false } }()
+        return VStack(spacing: 8) {
+            HStack {
+                Text("Today\u{2019}s \(site.name)")
+                Spacer()
+                Text("\(TimeText.clock(used)) of \(TimeText.clock(allowed)) used")
+                    .monospacedDigit()
+            }
+            .font(Theme.captionFont)
+            .foregroundStyle(Theme.textMuted)
+            TimeBar(fraction: allowed > 0 ? Double(used) / Double(allowed) : 0, tone: low ? .amber : .sage, height: 4)
+        }
+        .padding(.horizontal, Theme.gutter)
+        .padding(.top, 10)
+        .padding(.bottom, 8)
+        .background(Theme.bg)
+        .overlay(alignment: .top) { Rectangle().fill(Theme.line).frame(height: Theme.hairline) }
+        .accessibilityElement(children: .combine)
     }
 }

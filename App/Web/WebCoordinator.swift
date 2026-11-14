@@ -9,6 +9,8 @@ struct HealthReport: Equatable {
     var path: String
     var canaries: [Bool]
     var hideCounts: [String: Int]
+    /// How many things the script hid on the page, for the quiet notice in the browser.
+    var hiddenCount: Int
 
     init?(body: Any) {
         guard let dict = body as? [String: Any],
@@ -29,6 +31,7 @@ struct HealthReport: Equatable {
         self.path = path
         self.canaries = flags
         self.hideCounts = hide
+        self.hiddenCount = dict["hiddenCount"] as? Int ?? 0
     }
 }
 

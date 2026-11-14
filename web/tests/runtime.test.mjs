@@ -139,7 +139,7 @@ test("youtube shorts path redirects to watch with the id", () => {
 });
 
 test("health message has the documented shape", async () => {
-  const { messages } = load({ siteId: "youtube", html: "youtube-home.html", url: "https://m.youtube.com/" });
+  const { messages, document } = load({ siteId: "youtube", html: "youtube-home.html", url: "https://m.youtube.com/" });
   await sleep(150);
   assert.equal(messages.length, 1);
   const m = messages[0];
@@ -149,6 +149,9 @@ test("health message has the documented shape", async () => {
   assert.equal(typeof m.hideCounts, "object");
   assert.equal(m.hideCounts["ytm-reel-shelf-renderer"], 1);
   assert.equal(m.hideCounts["grid-shelf-view-model"], 0);
+  const fromSelectors = Object.values(m.hideCounts).reduce((a, b) => a + b, 0);
+  assert.equal(m.hiddenCount, fromSelectors + document.querySelectorAll("[data-qf-hidden]").length);
+  assert.ok(m.hiddenCount >= 1);
 });
 
 test("health reports a missing canary as false", async () => {

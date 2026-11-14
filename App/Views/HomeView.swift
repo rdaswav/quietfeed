@@ -10,6 +10,7 @@ struct HomeView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: Theme.tileGap) {
+                    header
                     if let error = model.loadError {
                         Text(error)
                             .font(Theme.captionFont)
@@ -17,17 +18,18 @@ struct HomeView: View {
                     }
                     ForEach(model.sites, id: \.id) { site in
                         NavigationLink(value: site.id) {
-                            SiteTile(
+                            BudgetCard(
                                 name: site.name,
                                 state: model.budgetState(for: site.id),
-                                allowedSeconds: model.allowedSeconds(for: site.id))
+                                allowedSeconds: model.allowedSeconds(for: site.id),
+                                rulesStale: model.isStale(site))
                         }
                         .buttonStyle(.plain)
                     }
-                    postModeRow
+                    footer
                 }
                 .padding(.horizontal, Theme.gutter)
-                .padding(.top, Theme.tileGap)
+                .padding(.bottom, 32)
             }
             .background(Theme.bg)
             .navigationDestination(for: String.self) { id in
@@ -35,23 +37,11 @@ struct HomeView: View {
                     BrowserView(site: site, model: model)
                 }
             }
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    NavigationLink {
-                        SettingsView(model: model)
-                    } label: {
-                        Image(systemName: "gearshape")
-                            .foregroundStyle(Theme.textMuted)
-                    }
-                    .accessibilityLabel("Settings")
-                }
-            }
-            .navigationTitle("Quiet Feed")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbarBackground(Theme.bg, for: .navigationBar)
+            .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $postGate) {
                 FrictionGate(
-                    title: "Open the official apps for \(AppModel.postModeMinutes) minutes",
+                    title: "Open the official apps for \(AppModel.postModeMinutes) minutes?",
+                    confirmLabel: "Open for \(AppModel.postModeMinutes) min",
                     countdownSeconds: model.frictionCountdownSeconds,
                     phrase: model.limits.frictionPhrase,
                     onConfirm: {
@@ -64,99 +54,159 @@ struct HomeView: View {
         }
         .tint(Theme.accent)
     }
-}
 
-extension HomeView {
-    /// Only shown while the shield is on. Shows when Post Mode ends, or the button to start it.
+    // MARK: Header
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 10) {
+                QuietFeedMark(size: 28)
+                Text("Quiet Feed")
+                    .font(Theme.wordmarkFont)
+                    .foregroundStyle(Theme.text)
+                Spacer()
+                NavigationLink {
+                    SettingsView(model: model)
+                } label: {
+                    Image(systemName: "gearshape")
+                        .foregroundStyle(Theme.textMuted)
+                        .frame(width: Theme.touchTarget, height: Theme.touchTarget)
+                }
+                .accessibilityLabel("Settings")
+            }
+            .padding(.top, 8)
+            Text("Your feeds, with an end.")
+                .font(Theme.displayFont)
+                .foregroundStyle(Theme.text)
+                .padding(.top, 14)
+                .accessibilityAddTraits(.isHeader)
+            Text("Resets at \(model.resetTimeText)")
+                .font(Theme.captionFont)
+                .foregroundStyle(Theme.textMuted)
+                .padding(.bottom, 10)
+        }
+    }
+
+    // MARK: Footer: shield state and Post Mode
+
     @ViewBuilder
-    var postModeRow: some View {
+    private var footer: some View {
         if model.shieldEnabled, model.shieldAuthorization == .approved {
-            if let ends = model.postModeEndsAt {
-                Text("Post Mode until \(ends.formatted(date: .omitted, time: .shortened))")
-                    .font(Theme.captionFont)
-                    .foregroundStyle(Theme.textMuted)
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, 8)
-            } else {
-                VStack(spacing: 4) {
+            VStack(spacing: 10) {
+                if let ends = model.postModeEndsAt {
+                    TimelineView(.periodic(from: .now, by: 1)) { context in
+                        let left = max(0, Int(ends.timeIntervalSince(context.date)))
+                        Chip(text: "Post Mode \u{00B7} \(TimeText.clock(left))", kind: .amber)
+                            .accessibilityLabel("Post Mode, \(left) seconds left")
+                    }
+                    Text("The official apps are open until then.")
+                        .font(Theme.captionFont)
+                        .foregroundStyle(Theme.textMuted)
+                } else {
+                    HStack(spacing: 8) {
+                        Chip(text: "Shielded")
+                        Text("Official apps are blocked")
+                            .font(Theme.captionFont)
+                            .foregroundStyle(Theme.textMuted)
+                    }
                     Button("Post Mode") { postGate = true }
                         .font(Theme.captionFont)
                         .foregroundStyle(Theme.textMuted)
-                        .frame(minHeight: 44)
+                        .frame(minHeight: Theme.touchTarget)
                     if postFailed {
                         Text("Post Mode could not start, so the shield stays on.")
                             .font(Theme.captionFont)
                             .foregroundStyle(Theme.warn)
                     }
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.top, 8)
             }
+            .frame(maxWidth: .infinity)
+            .padding(.top, 20)
         }
     }
 }
 
-private struct SiteTile: View {
+/// One site's time budget, in the three states of the design: time left, nearly there (amber, never red) and done.
+private struct BudgetCard: View {
     let name: String
     let state: BudgetEngine.State
     let allowedSeconds: Int?
+    let rulesStale: Bool
+
+    private var isDone: Bool {
+        if case .exhausted = state { return true }
+        return false
+    }
+
+    private var isLow: Bool {
+        if case .warning = state { return true }
+        return false
+    }
+
+    private var remainingSeconds: Int? {
+        switch state {
+        case .ok(let r), .warning(let r): return r
+        default: return nil
+        }
+    }
+
+    private var fraction: Double {
+        guard let r = remainingSeconds, let allowed = allowedSeconds, allowed > 0 else { return 0 }
+        return Double(r) / Double(allowed)
+    }
 
     private var valueText: String {
         switch state {
         case .unlimited: return "No limit"
         case .ok(let r), .warning(let r): return TimeText.minutes(r)
-        case .exhausted: return "Done"
+        case .exhausted: return "Done for today"
         }
     }
 
-    private var valueColor: Color {
-        switch state {
-        case .warning: return Theme.warn
-        default: return Theme.textMuted
-        }
-    }
-
-    /// 0...1 share of today's time still left; nil hides the bar.
-    private var fraction: Double? {
-        switch state {
-        case .unlimited: return nil
-        case .exhausted: return 0
-        case .ok(let r), .warning(let r):
-            guard let allowed = allowedSeconds, allowed > 0 else { return nil }
-            return min(1, Double(r) / Double(allowed))
-        }
+    private var captionText: String? {
+        guard let allowed = allowedSeconds, remainingSeconds != nil else { return nil }
+        return "left of \(allowed / 60)"
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
+            HStack(alignment: .firstTextBaseline) {
                 Text(name)
-                    .font(Theme.bodyFont)
-                    .foregroundStyle(Theme.text)
+                    .font(Theme.bodyFont.weight(.semibold))
+                    .foregroundStyle(isDone ? Theme.textMuted : Theme.text)
+                if rulesStale {
+                    Circle().fill(Theme.warn).frame(width: 8, height: 8).accessibilityHidden(true)
+                }
                 Spacer()
                 Text(valueText)
-                    .font(Theme.timeFont)
-                    .foregroundStyle(valueColor)
+                    .font(isDone || valueText == "No limit" ? Theme.captionFont : Theme.timeFont)
+                    .foregroundStyle(isLow ? Theme.warn : (isDone ? Theme.textMuted : Theme.text))
             }
-            if let fraction {
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        Capsule().fill(Theme.line)
-                        Capsule().fill(Theme.accent).frame(width: geo.size.width * fraction)
-                    }
+            if case .unlimited = state {
+                EmptyView()
+            } else {
+                TimeBar(fraction: fraction, tone: isDone ? .done : (isLow ? .amber : .sage))
+                if let captionText {
+                    Text(captionText)
+                        .font(Theme.captionFont)
+                        .foregroundStyle(Theme.textMuted)
                 }
-                .frame(height: Theme.barHeight)
             }
         }
-        .padding(.horizontal, Theme.gutter)
-        .frame(maxWidth: .infinity, minHeight: Theme.tileHeight, alignment: .leading)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: Theme.cardRadius))
-        .overlay(
-            RoundedRectangle(cornerRadius: Theme.cardRadius)
-                .stroke(Theme.line, lineWidth: Theme.hairline)
-        )
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .quietCard(muted: isDone)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(valueText == "Done" ? "\(name), done for today" : "\(name), \(valueText)")
+        .accessibilityLabel(accessibilityText)
+    }
+
+    private var accessibilityText: String {
+        switch state {
+        case .unlimited: return "\(name), no limit"
+        case .exhausted: return "\(name), done for today"
+        case .ok(let r), .warning(let r):
+            let of = allowedSeconds.map { ", of \($0 / 60) minutes" } ?? ""
+            return "\(name), \(TimeText.minutes(r)) left\(of)"
+        }
     }
 }
 

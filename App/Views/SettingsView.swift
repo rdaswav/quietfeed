@@ -4,12 +4,14 @@ import QuietFeedCore
 private struct ShieldGate: Identifiable {
     let id = UUID()
     let title: String
+    var confirmLabel: String = "Continue"
     let action: () -> Void
 }
 
 private struct LimitGate: Identifiable {
     let id = UUID()
     let title: String
+    var confirmLabel: String = "Apply"
     let settings: LimitSettings
 }
 
@@ -36,6 +38,8 @@ struct SettingsView: View {
         .background(Theme.bg)
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.visible, for: .navigationBar)
+        .toolbarBackground(Theme.bg, for: .navigationBar)
         .onAppear {
             serverText = model.serverURLText
             wantsCustom = model.usesCustomRules
@@ -45,6 +49,7 @@ struct SettingsView: View {
         .sheet(item: $gate) { pending in
             FrictionGate(
                 title: pending.title,
+                confirmLabel: pending.confirmLabel,
                 countdownSeconds: model.frictionCountdownSeconds,
                 phrase: model.limits.frictionPhrase,
                 onConfirm: {
@@ -59,6 +64,7 @@ struct SettingsView: View {
         .sheet(item: $shieldGate) { pending in
             FrictionGate(
                 title: pending.title,
+                confirmLabel: pending.confirmLabel,
                 countdownSeconds: model.frictionCountdownSeconds,
                 phrase: model.limits.frictionPhrase,
                 onConfirm: { pending.action(); shieldGate = nil },
@@ -103,10 +109,10 @@ struct SettingsView: View {
                     .listRowBackground(Theme.surface)
                 Button {
                     if let pending = draft.pending {
-                        gate = LimitGate(title: "Apply your changes to limits", settings: pending)
+                        gate = LimitGate(title: "Apply these changes?", confirmLabel: "Apply", settings: pending)
                     }
                 } label: {
-                    Text("Apply changes").foregroundStyle(Theme.accent)
+                    Text("Apply changes").font(Theme.rowFont.weight(.semibold)).foregroundStyle(Theme.text)
                 }
                 .listRowBackground(Theme.surface)
                 Button {
@@ -138,7 +144,7 @@ struct SettingsView: View {
             stepperRow("Filter pauses per day", value: intBinding(\.maxFilterPausesPerDay),
                        range: 0...10, step: 1) { "\($0)" }
         } header: {
-            Text("Daily limits").foregroundStyle(Theme.textMuted)
+            Text("Daily limits").sectionLabel()
         } footer: {
             Text("Lowering a limit applies at once. Raising one waits until you apply it.")
                 .font(Theme.captionFont)
@@ -162,7 +168,7 @@ struct SettingsView: View {
             }
             .listRowBackground(Theme.surface)
         } header: {
-            Text("Friction").foregroundStyle(Theme.textMuted)
+            Text("Friction").sectionLabel()
         }
     }
 
@@ -199,7 +205,7 @@ struct SettingsView: View {
                 if on {
                     model.setShieldEnabled(true)
                 } else {
-                    shieldGate = ShieldGate(title: "Stop shielding the official apps") {
+                    shieldGate = ShieldGate(title: "Stop shielding the official apps?", confirmLabel: "Stop shielding") {
                         model.setShieldEnabled(false)
                     }
                 }
@@ -215,7 +221,7 @@ struct SettingsView: View {
                 Button {
                     Task { await model.requestShieldAccess() }
                 } label: {
-                    Text("Allow access").foregroundStyle(Theme.accent)
+                    Text("Allow access").font(Theme.rowFont.weight(.semibold)).foregroundStyle(Theme.text)
                 }
                 .listRowBackground(Theme.surface)
             case .denied:
@@ -234,7 +240,7 @@ struct SettingsView: View {
                 row("Post Mode length", "15 min")
             }
         } header: {
-            Text("Official apps").foregroundStyle(Theme.textMuted)
+            Text("Official apps").sectionLabel()
         } footer: {
             Text("Shielded apps show a Screen Time screen when opened. Taking apps off the shield or switching it off asks you to wait first.")
                 .font(Theme.captionFont)
@@ -250,7 +256,7 @@ struct SettingsView: View {
                 controller: controller,
                 version: model.shieldVersion,
                 onCommitted: { model.reconcileShield() },
-                requestGate: { title, action in shieldGate = ShieldGate(title: title, action: action) }
+                requestGate: { title, action in shieldGate = ShieldGate(title: title, confirmLabel: "Take off", action: action) }
             )
         } else {
             simulatorNote
@@ -325,7 +331,7 @@ struct SettingsView: View {
                 Task { await model.refreshRules() }
             } label: {
                 HStack {
-                    Text("Check now").foregroundStyle(Theme.accent)
+                    Text("Check now").font(Theme.rowFont.weight(.semibold)).foregroundStyle(Theme.text)
                     Spacer()
                     if model.isChecking { ProgressView() }
                 }
@@ -345,11 +351,11 @@ struct SettingsView: View {
                     }
                 }
             } label: {
-                Text("Report a broken rule").foregroundStyle(Theme.accent)
+                Text("Report a broken rule").font(Theme.rowFont.weight(.semibold)).foregroundStyle(Theme.text)
             }
             .listRowBackground(Theme.surface)
         } header: {
-            Text("Rules").foregroundStyle(Theme.textMuted)
+            Text("Rules").sectionLabel()
         } footer: {
             Text("Official rules are checked against a signature built into the app. A custom server is your own and is not checked.")
                 .font(Theme.captionFont)
@@ -380,7 +386,7 @@ struct SettingsView: View {
                 .foregroundStyle(Theme.textMuted)
                 .listRowBackground(Theme.surface)
         } header: {
-            Text("About").foregroundStyle(Theme.textMuted)
+            Text("About").sectionLabel()
         }
     }
 

@@ -107,13 +107,17 @@ Deliberately unexciting: nothing in the app competes for your attention. One sag
 
 | Token | Light | Dark |
 |---|---|---|
-| Background | `#F6F5F1` | `#121311` |
+| Paper / Night (background) | `#F6F5F1` | `#121311` |
 | Surface | `#FFFFFF` | `#1C1D1A` |
-| Text | `#1B1C19` | `#ECEBE6` |
-| Accent (sage) | `#5E7A64` | `#8FB096` |
-| Warning (amber) | `#B07A2A` | `#D9A65A` |
+| Hairline | `#E3E1D9` | `#2B2D28` |
+| Ink | `#1B1C19` | `#ECEBE6` |
+| Ink 2 (secondary text) | `#5A5C55` | `#A5A79E` |
+| Sage (the one accent) | `#4A6650` | `#8FB096` |
+| Amber (low time, never red) | `#8A5A12` | `#D9A65A` |
 
-The logo is a sage rounded square with a single flat line: a feed with nothing left in it. Assets are in [`docs/assets`](docs/assets).
+Headlines use New York (the system serif) and everything else SF Pro. The full set, with contrast checks, is in [`design/tokens.json`](design/tokens.json).
+
+The mark is a sage rounded square with two faint lines and one solid line: the faint ones are the scroll, the solid one is the end of it. Assets are in [`docs/assets`](docs/assets).
 
 ## Limitations
 

@@ -1,14 +1,19 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 320" width="1280" height="320" role="img" aria-label="Quiet Feed: Instagram, YouTube and Facebook without the endless parts">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 320" width="1280" height="320" role="img" aria-label="Quiet Feed: your feeds, minus the pull">
   <style>
-    :root { --bg:#F6F5F1; --line:#E3E1DA; --text:#1B1C19; --muted:#6C6E66; --accent:#5E7A64; --icon:#F6F5F1; }
+    :root { --bg:#F6F5F1; --line:#E3E1D9; --text:#1B1C19; --muted:#5A5C55; --accent:#4A6650; --onaccent:#FFFFFF; }
     @media (prefers-color-scheme: dark) {
-      :root { --bg:#121311; --line:#2C2E29; --text:#ECEBE6; --muted:#9A9C93; --accent:#8FB096; --icon:#121311; }
+      :root { --bg:#121311; --line:#2B2D28; --text:#ECEBE6; --muted:#A5A79E; --accent:#8FB096; --onaccent:#121311; }
     }
-    text { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif; }
+    .serif { font-family: "New York", "Newsreader", Georgia, serif; }
+    .sans { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Helvetica Neue", Arial, sans-serif; }
   </style>
   <rect width="1280" height="320" rx="24" fill="var(--bg)" stroke="var(--line)" stroke-width="2"/>
-  <rect x="96" y="96" width="128" height="128" rx="28" fill="var(--accent)"/>
-  <rect x="124" y="154" width="72" height="8" rx="4" fill="var(--icon)"/>
-  <text x="264" y="168" font-size="72" font-weight="600" fill="var(--text)">Quiet Feed</text>
-  <text x="266" y="214" font-size="26" fill="var(--muted)">Instagram, YouTube and Facebook, without the endless parts.</text>
+  <g transform="translate(96 96) scale(2)">
+    <rect width="64" height="64" rx="16" fill="var(--accent)"/>
+    <rect x="16" y="19" width="26" height="4" rx="2" fill="var(--onaccent)" opacity=".4"/>
+    <rect x="16" y="29" width="18" height="4" rx="2" fill="var(--onaccent)" opacity=".4"/>
+    <rect x="16" y="43" width="32" height="5" rx="2.5" fill="var(--onaccent)"/>
+  </g>
+  <text class="serif" x="264" y="166" font-size="72" font-weight="500" fill="var(--text)">Quiet Feed</text>
+  <text class="sans" x="266" y="214" font-size="26" fill="var(--muted)">Your feeds. Minus the pull.</text>
 </svg>

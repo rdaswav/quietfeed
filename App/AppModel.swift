@@ -46,6 +46,7 @@ final class AppModel {
 
     @ObservationIgnored private var store: RuleStore?
     @ObservationIgnored let ledger: UsageLedger
+    @ObservationIgnored let clock: Clock
     @ObservationIgnored private let limitsStore: JSONFileStore
     @ObservationIgnored private var ticksSinceFlush = 0
     @ObservationIgnored private let defaults: UserDefaults
@@ -76,6 +77,7 @@ final class AppModel {
         self.showOnboarding = !defaults.bool(forKey: Self.onboardingKey)
         self.limitsStore = JSONFileStore(url: limitsURL ?? Self.supportURL("limits.json"))
         self.limits = limitsStore.load(LimitSettings.self) ?? LimitSettings()
+        self.clock = clock
         self.ledger = UsageLedger(store: JSONFileStore(url: usageURL ?? Self.supportURL("usage.json")), clock: clock)
         let savedURL = defaults.string(forKey: Self.serverURLKey)
         self.serverURLText = savedURL ?? ""
@@ -303,6 +305,11 @@ final class AppModel {
     static let filterPauseSeconds = 5 * 60
 
     var engine: BudgetEngine { BudgetEngine(settings: limits) }
+
+    /// When the day's budget resets, as shown in the copy: "6:00 am".
+    var resetTimeText: String {
+        clock.nextReset(after: Date()).formatted(date: .omitted, time: .shortened).lowercased()
+    }
 
     func budgetState(for siteId: String) -> BudgetEngine.State {
         _ = usageVersion

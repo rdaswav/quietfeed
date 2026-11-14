@@ -1,4 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Quiet Feed logo">
-  <rect width="512" height="512" rx="112" fill="#5E7A64"/>
-  <rect x="136" y="244" width="240" height="24" rx="12" fill="#F6F5F1"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="512" height="512" role="img" aria-label="Quiet Feed logo">
+  <style>
+    :root { --accent:#4A6650; --onaccent:#FFFFFF; }
+    @media (prefers-color-scheme: dark) { :root { --accent:#8FB096; --onaccent:#121311; } }
+  </style>
+  <g>
+    <rect width="64" height="64" rx="16" fill="var(--accent)"/>
+    <rect x="16" y="19" width="26" height="4" rx="2" fill="var(--onaccent)" opacity=".4"/>
+    <rect x="16" y="29" width="18" height="4" rx="2" fill="var(--onaccent)" opacity=".4"/>
+    <rect x="16" y="43" width="32" height="5" rx="2.5" fill="var(--onaccent)"/>
+  </g>
 </svg>

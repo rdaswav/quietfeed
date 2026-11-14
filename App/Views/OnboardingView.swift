@@ -33,15 +33,10 @@ struct OnboardingView: View {
             }
             .tabViewStyle(.page(indexDisplayMode: .always))
 
-            Button {
+            Button(page < lastPage ? "Next" : "Done") {
                 if page < lastPage { page += 1 } else { model.completeOnboarding() }
-            } label: {
-                Text(page < lastPage ? "Next" : "Done")
-                    .font(Theme.bodyFont.weight(.semibold))
-                    .foregroundStyle(Theme.bg)
-                    .frame(maxWidth: .infinity, minHeight: 48)
-                    .background(Theme.accent, in: RoundedRectangle(cornerRadius: Theme.buttonRadius))
             }
+            .buttonStyle(PrimaryButtonStyle())
             .padding(.horizontal, Theme.gutter)
             .padding(.bottom, Theme.gutter)
         }
@@ -53,8 +48,9 @@ struct OnboardingView: View {
     ) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
+                QuietFeedMark(size: 36)
                 Text(title)
-                    .font(Theme.titleFont)
+                    .font(Theme.displayFont)
                     .foregroundStyle(Theme.text)
                     .accessibilityAddTraits(.isHeader)
                 Text(message)
@@ -109,10 +105,7 @@ struct OnboardingView: View {
             }
         }
         .accessibilityValue(binding.wrappedValue == 0 ? "No limit" : "\(binding.wrappedValue) minutes")
-        .padding(.horizontal, Theme.gutter)
-        .frame(minHeight: Theme.tileHeight)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: Theme.cardRadius))
-        .overlay(RoundedRectangle(cornerRadius: Theme.cardRadius).stroke(Theme.line, lineWidth: Theme.hairline))
+        .quietCard()
     }
 
     // MARK: 3. Official apps
@@ -175,13 +168,8 @@ struct OnboardingView: View {
     }
 
     private func outlineButton(_ title: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(title)
-                .font(Theme.bodyFont.weight(.semibold))
-                .foregroundStyle(Theme.accent)
-                .frame(maxWidth: .infinity, minHeight: 48)
-                .overlay(RoundedRectangle(cornerRadius: Theme.buttonRadius).stroke(Theme.accent, lineWidth: Theme.hairline))
-        }
+        Button(title, action: action)
+            .buttonStyle(SecondaryButtonStyle())
     }
 }
 

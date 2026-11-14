@@ -45,7 +45,7 @@ struct ChooseAppsRow: View {
             controller.commit(chosen)
             onCommitted()
         } else {
-            requestGate("Take apps off the shield") {
+            requestGate("Take these apps off the shield?") {
                 controller.commit(chosen)
                 onCommitted()
             }

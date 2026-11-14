@@ -167,7 +167,10 @@
     var found = canaries.map(function (sel) {
       try { return document.querySelector(sel) !== null; } catch (e) { return false; }
     });
-    var msg = { type: "health", path: location.pathname, canaries: found, hideCounts: counts };
+    // How many things were hidden on this page: selector hits plus posts and bars hidden by text.
+    var hiddenCount = document.querySelectorAll("[data-qf-hidden]").length;
+    for (var key in counts) hiddenCount += counts[key];
+    var msg = { type: "health", path: location.pathname, canaries: found, hideCounts: counts, hiddenCount: hiddenCount };
     try {
       window.webkit.messageHandlers.quietfeed.postMessage(msg);
     } catch (e) { /* not running inside the app */ }
