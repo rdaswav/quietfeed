@@ -184,6 +184,9 @@ struct BrowserView: View {
                 Button("Pause filters (5 min)", systemImage: "pause.circle") { requestFilterPause() }
                     .disabled(pauseRemaining != nil || !model.canPauseFilters(for: site.id))
                 Button("Open in Safari", systemImage: "safari") { controller.openInSafari(site) }
+                Button("Report a broken rule", systemImage: "exclamationmark.bubble") {
+                    if let url = model.brokenRuleReportURL(for: site) { UIApplication.shared.open(url) }
+                }
                 #if DEBUG
                 Button("Save page outline", systemImage: "square.and.arrow.down") {
                     Task { outlineNote = await controller.savePageOutline(siteId: site.id) }

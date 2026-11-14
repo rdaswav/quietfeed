@@ -148,6 +148,26 @@ final class AppModel {
         setServerURL("")
     }
 
+    /// The prefilled issue address for a site. Only versions, the rules source and the page check result go in it.
+    func brokenRuleReportURL(for site: SiteRules) -> URL? {
+        let source: String
+        switch ruleStatus?.source {
+        case .official: source = "official"
+        case .custom: source = "custom server"
+        case .cached: source = usesCustomRules ? "custom server (saved copy)" : "official (saved copy)"
+        case .bundled, .none: source = "built in"
+        }
+        let health: String
+        if let report = healthReports[site.id] {
+            health = report.canaries.contains(false) ? "something missing" : "all found"
+        } else {
+            health = "not checked yet"
+        }
+        return BrokenRuleReport.url(.init(
+            siteId: site.id, siteName: site.name, appVersion: Self.appVersion(.main),
+            packVersion: ruleStatus?.packVersion ?? 0, rulesSource: source, health: health))
+    }
+
     func refreshRules() async {
         guard let store, !isChecking else { return }
         isChecking = true

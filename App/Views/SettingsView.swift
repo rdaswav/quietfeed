@@ -338,6 +338,16 @@ struct SettingsView: View {
                     .foregroundStyle(model.isStale(site) ? Theme.warn : Theme.text)
                     .listRowBackground(Theme.surface)
             }
+            Menu {
+                ForEach(model.sites, id: \.id) { site in
+                    Button(site.name) {
+                        if let url = model.brokenRuleReportURL(for: site) { UIApplication.shared.open(url) }
+                    }
+                }
+            } label: {
+                Text("Report a broken rule").foregroundStyle(Theme.accent)
+            }
+            .listRowBackground(Theme.surface)
         } header: {
             Text("Rules").foregroundStyle(Theme.textMuted)
         } footer: {
