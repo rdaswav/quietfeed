@@ -6,3 +6,4 @@ Local.xcconfig
 .DS_Store
 .swiftpm
 build/
+dist-site/
