@@ -96,7 +96,8 @@ struct OnboardingView: View {
                 model.commitLimits(new)
             })
         return Stepper(value: binding, in: 0...180, step: 5) {
-            HStack {
+            HStack(spacing: 10) {
+                SiteMonogram(name: site.name, size: 24)
                 Text(site.name).font(Theme.bodyFont).foregroundStyle(Theme.text)
                 Spacer()
                 Text(binding.wrappedValue == 0 ? "No limit" : "\(binding.wrappedValue) min")

@@ -282,6 +282,7 @@ struct BrowserView: View {
                     .font(Theme.timeFont)
                     .foregroundStyle(Theme.warn)
             } else {
+                SiteMonogram(name: site.name, size: 26)
                 Text(site.name)
                     .font(Theme.bodyFont.weight(.semibold))
                     .foregroundStyle(Theme.text)

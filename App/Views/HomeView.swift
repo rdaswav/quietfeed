@@ -177,7 +177,8 @@ private struct BudgetCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .firstTextBaseline) {
+            HStack(alignment: .center, spacing: 10) {
+                SiteMonogram(name: name, size: 30, muted: isDone)
                 Text(name)
                     .font(Theme.bodyFont.weight(.semibold))
                     .foregroundStyle(isDone ? Theme.textMuted : Theme.text)

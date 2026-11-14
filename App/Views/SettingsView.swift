@@ -134,7 +134,7 @@ struct SettingsView: View {
     private var limitsSection: some View {
         Section {
             ForEach(model.sites, id: \.id) { site in
-                stepperRow(site.name, value: budgetBinding(site), range: 0...180, step: 5) { v in
+                stepperRow(site.name, monogram: true, value: budgetBinding(site), range: 0...180, step: 5) { v in
                     v == 0 ? "No limit" : "\(v) min"
                 }
             }
@@ -183,11 +183,12 @@ struct SettingsView: View {
     }
 
     private func stepperRow(
-        _ title: String, value: Binding<Int>, range: ClosedRange<Int>, step: Int,
+        _ title: String, monogram: Bool = false, value: Binding<Int>, range: ClosedRange<Int>, step: Int,
         format: @escaping (Int) -> String
     ) -> some View {
         Stepper(value: value, in: range, step: step) {
-            HStack {
+            HStack(spacing: 10) {
+                if monogram { SiteMonogram(name: title, size: 24) }
                 Text(title).font(Theme.bodyFont).foregroundStyle(Theme.text)
                 Spacer()
                 Text(format(value.wrappedValue)).font(Theme.timeFont).foregroundStyle(Theme.textMuted)

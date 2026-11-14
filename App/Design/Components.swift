@@ -161,3 +161,21 @@ struct TimeBar: View {
         .accessibilityHidden(true)
     }
 }
+
+/// A site's own quiet tile: its first letter in the serif on a soft sage square. Deliberately not the site's
+/// logo (trademarks, and four brand colours would break the one-accent rule). Decorative: the name is always beside it.
+struct SiteMonogram: View {
+    let name: String
+    var size: CGFloat = 28
+    var muted = false
+
+    var body: some View {
+        Text(String(name.prefix(1)).uppercased())
+            .font(.system(size: size * 0.52, weight: .medium, design: .serif))
+            .foregroundStyle(muted ? Theme.textMuted : Theme.onAccentSoft)
+            .frame(width: size, height: size)
+            .background(muted ? Theme.surfaceMuted : Theme.accentSoft,
+                        in: RoundedRectangle(cornerRadius: size * 0.28, style: .continuous))
+            .accessibilityHidden(true)
+    }
+}
