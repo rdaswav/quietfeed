@@ -123,4 +123,12 @@ final class RulePackValidatorTests: XCTestCase {
         let e = run(pack { $0.allowedHosts = ["tube.com"] })
         XCTAssertEqual(e, .homeHostNotAllowed(site: "youtube", host: "m.youtube.com"))
     }
+
+    func testMinAppVersionMustBeReadable() {
+        XCTAssertNil(run(pack { _ in }))
+        var ok = RulePack(schemaVersion: 1, packVersion: 1, updated: "x", minAppVersion: "1.2.3", sites: [goodSite()])
+        XCTAssertNil(run(ok))
+        ok.minAppVersion = "soon"
+        XCTAssertEqual(run(ok), .badMinAppVersion("soon"))
+    }
 }

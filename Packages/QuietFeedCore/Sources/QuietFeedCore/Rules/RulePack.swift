@@ -97,12 +97,15 @@ public struct RulePack: Codable, Equatable, Sendable {
     public var schemaVersion: Int
     public var packVersion: Int
     public var updated: String
+    /// An app older than this ignores the pack and keeps what it has. Optional, `x`, `x.y` or `x.y.z`.
+    public var minAppVersion: String?
     public var sites: [SiteRules]
 
-    public init(schemaVersion: Int, packVersion: Int, updated: String, sites: [SiteRules]) {
+    public init(schemaVersion: Int, packVersion: Int, updated: String, minAppVersion: String? = nil, sites: [SiteRules]) {
         self.schemaVersion = schemaVersion
         self.packVersion = packVersion
         self.updated = updated
+        self.minAppVersion = minAppVersion
         self.sites = sites
     }
 }

@@ -11,6 +11,7 @@ public enum ValidationError: Error, Equatable, Sendable {
     case redirectTarget(site: String, to: String?)
     case invalidSelector(site: String, selector: String)
     case homeURLNotHTTPS(site: String, url: String)
+    case badMinAppVersion(String)
     case homeHostNotAllowed(site: String, host: String)
 }
 
@@ -37,6 +38,7 @@ public enum RulePackValidator {
 
     static func check(_ pack: RulePack) -> ValidationError? {
         if pack.schemaVersion != 1 { return .unknownSchemaVersion(pack.schemaVersion) }
+        if let v = pack.minAppVersion, AppVersion.parse(v) == nil { return .badMinAppVersion(v) }
         if pack.sites.count > maxSites { return .tooManySites(pack.sites.count) }
         for s in pack.sites {
             if !knownSiteIds.contains(s.id) { return .unknownSiteId(s.id) }

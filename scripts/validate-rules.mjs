@@ -22,6 +22,10 @@ export function validate(buf) {
     return [`not valid JSON: ${e.message}`];
   }
   if (pack.schemaVersion !== 1) errors.push(`unknown schemaVersion ${pack.schemaVersion}`);
+  if (pack.minAppVersion !== undefined && pack.minAppVersion !== null &&
+      !(typeof pack.minAppVersion === "string" && /^\d+(\.\d+){0,2}$/.test(pack.minAppVersion))) {
+    errors.push(`bad minAppVersion: ${JSON.stringify(pack.minAppVersion)}`);
+  }
   if (!Array.isArray(pack.sites)) return [...errors, "sites must be an array"];
   if (pack.sites.length > MAX_SITES) errors.push(`too many sites: ${pack.sites.length}`);
 

@@ -90,9 +90,11 @@ final class AppModel {
             loadError = "The bundled rules are invalid: \(error)"
         case .success(let bundled):
             let cache = JSONFileStore(url: cacheURL ?? Self.defaultCacheURL())
+            let saved = URL(string: serverURLText)
             let store = RuleStore(
                 bundled: bundled, cache: cache, fetcher: fetcher,
-                serverURL: URL(string: serverURLText))
+                ruleSource: saved.map(RuleSource.custom) ?? .official,
+                appVersion: Self.appVersion(bundle))
             self.store = store
             syncFromStore()
         }
@@ -120,14 +122,14 @@ final class AppModel {
         if trimmed.isEmpty {
             serverURLText = ""
             defaults.removeObject(forKey: Self.serverURLKey)
-            store?.serverURL = nil
+            store?.ruleSource = .official
             return true
         }
         guard let url = URL(string: trimmed), let scheme = url.scheme?.lowercased(),
               scheme == "http" || scheme == "https", url.host != nil else { return false }
         serverURLText = trimmed
         defaults.set(trimmed, forKey: Self.serverURLKey)
-        store?.serverURL = url
+        store?.ruleSource = .custom(url)
         return true
     }
 
@@ -154,6 +156,10 @@ final class AppModel {
         let s = store.status
         ruleStatus = RuleStatus(source: s.source, packVersion: s.packVersion,
                                 lastChecked: s.lastFetchAt, lastError: s.lastError)
+    }
+
+    private static func appVersion(_ bundle: Bundle) -> String {
+        bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
     }
 
     private static func defaultCacheURL() -> URL { supportURL("rulepack.cache.json") }

@@ -361,7 +361,8 @@ struct SettingsView: View {
         switch s.source {
         case .bundled: return "Built in, version \(s.packVersion)"
         case .cached: return "Saved copy, version \(s.packVersion)"
-        case .remote: return "NAS, version \(s.packVersion)"
+        case .official: return "Official, version \(s.packVersion)"
+        case .custom: return "Custom server, version \(s.packVersion)"
         }
     }
 
