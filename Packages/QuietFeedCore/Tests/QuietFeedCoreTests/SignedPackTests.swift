@@ -79,4 +79,22 @@ final class SignedPackTests: XCTestCase {
             .appendingPathComponent("rules/rulepack.json"))
         XCTAssertEqual(verifier.verify(plain), .failure(.malformedEnvelope))
     }
+
+    /// The vector was signed by Node's crypto with a throwaway key, so this proves the two languages agree.
+    func testAVectorSignedByNodeVerifiesInSwift() throws {
+        let url = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+            .appendingPathComponent("Fixtures/signed-vector.json")
+        struct Vector: Decodable { let keyId: String; let publicKey: String; let envelope: SignedPackEnvelope }
+        let vector = try JSONDecoder().decode(Vector.self, from: Data(contentsOf: url))
+        let key = try XCTUnwrap(Data(base64Encoded: vector.publicKey))
+        XCTAssertEqual(key.count, 32)
+        let verifier = PackVerifier(publicKeys: [vector.keyId: key])
+        let envelopeData = try JSONEncoder().encode(vector.envelope)
+        let payload = try verifier.verify(envelopeData).get()
+        XCTAssertEqual(String(decoding: payload, as: UTF8.self),
+                       "{\"schemaVersion\":1,\"packVersion\":1,\"updated\":\"2026-01-01\",\"sites\":[]}")
+        // A different key must not accept it.
+        let other = PackVerifier(publicKeys: [vector.keyId: Curve25519.Signing.PrivateKey().publicKey.rawRepresentation])
+        XCTAssertEqual(other.verify(envelopeData), .failure(.badSignature))
+    }
 }

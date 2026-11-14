@@ -1,0 +1,10 @@
+{
+  "note": "Test vector only. Signed with a throwaway key whose private half was discarded. Not the real rules key.",
+  "keyId": "test",
+  "publicKey": "X0z0eux83PhctzzX4h3Zx8KvGKuWs/zbByyITW+dMQA=",
+  "envelope": {
+    "keyId": "test",
+    "payload": "eyJzY2hlbWFWZXJzaW9uIjoxLCJwYWNrVmVyc2lvbiI6MSwidXBkYXRlZCI6IjIwMjYtMDEtMDEiLCJzaXRlcyI6W119",
+    "signature": "tCgrC89SXBw6hui+KtPhANoW3BwK27AHEJrjfEekiHb5hxDyXFqo8q7eHNQYOQkqwSNC5931dpRN24+peOmrDw=="
+  }
+}
