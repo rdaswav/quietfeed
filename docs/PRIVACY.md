@@ -1,6 +1,6 @@
 # Quiet Feed privacy policy
 
-Last updated: 14 November 2026.
+Last updated: 14 November 2026 (rules update check added).
 
 Quiet Feed does not collect, store or send your personal data to its developer or to anyone else. It has no accounts, no analytics, no advertising and no tracking.
 
@@ -13,13 +13,14 @@ Quiet Feed does not collect, store or send your personal data to its developer o
 ## What the app connects to
 
 - **The sites you open.** When you open Instagram, YouTube or Facebook, your phone loads that site directly, exactly as a browser would. Their own privacy policies apply to what they do. Quiet Feed only hides parts of the page on your device.
-- **A rules server, only if you set one up.** In Settings you may enter the address of a server you run yourself, which supplies updated hiding rules. The app fetches one small file from it. By default there is no server and the app does nothing on the network of its own.
+- **Updated hiding rules, from GitHub Pages.** By default the app checks for an updated file of hiding rules, published by the Quiet Feed project on GitHub Pages. It fetches one small file, at most every 6 hours. Doing so shows your phone's IP address to GitHub, the same as visiting any web page. Nothing else is sent: no account, no identifier, nothing about what you view. The file is signed and the app ignores it unless the signature matches a key built into the app. GitHub's own privacy policy covers what it does with its server logs.
+- **A rules server of your own, if you choose one.** In Settings you can switch to a custom server that you run yourself. The app then fetches the same kind of file from it instead. Nothing is sent to anyone else.
 
 ## Permissions
 
 - **Camera, microphone and photos.** Asked for only because the sites may want them when you post. Quiet Feed does not use them itself.
 - **Screen Time access.** Asked for only if you turn on shielding of the official apps.
-- **Local network.** Asked for only so the app can reach a rules server on your home network.
+- **Local network.** Asked for only if you choose a custom rules server on your home network.
 
 ## Children
 

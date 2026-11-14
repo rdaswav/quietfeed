@@ -17,13 +17,13 @@ iOS does not let one app change another, so nothing can remove Reels from the of
 1. Each site loads in its own `WKWebView` with its own cookie store, so logins are kept separate.
 2. A small script injected before the page renders hides sections with CSS and watches for content that loads later.
 3. Links to Reels and Shorts are redirected to somewhere useful (a Short opens as a normal video, a Reels link goes home).
-4. Everything runs on the device. There is no account, no tracking and no server you have to trust.
+4. Everything runs on the device. There is no account and no tracking. The only network call the app makes by itself is a small check for updated hide rules (see [How rules are published](#how-rules-are-published)).
 
 On top of that:
 
 - **Daily limits with friction.** A time budget per site. Extending it or loosening a setting makes you wait out a countdown and type a phrase first.
 - **Shield the official apps.** Uses Screen Time (Family Controls) so the real apps can't be used to sidestep the filter. A short Post Mode unlocks them when you need to upload something.
-- **Rules you can fix without a rebuild.** Hide rules live in a plain JSON file, `rules/rulepack.json`. The app can fetch an updated copy from a small server you host, so a site redesign is a file edit, not a new app release.
+- **Rules you can fix without a rebuild.** Hide rules live in a plain JSON file, `rules/rulepack.json`. The app checks for an updated, signed copy from the project's GitHub Pages, so a site redesign is a file edit, not a new app release. You can point it at your own server instead.
 
 ## Roadmap
 
@@ -52,9 +52,20 @@ xcodegen generate
 
 Want to try it, or help test? See [`docs/TESTING.md`](docs/TESTING.md). Bugs and broken hide rules go in the [issue tracker](https://github.com/rdaswav/quietfeed/issues). The [privacy policy](docs/PRIVACY.md) is short: the app collects nothing.
 
+## How rules are published
+
+The hide rules are one file, [`rules/rulepack.json`](rules/rulepack.json). They are plain data (CSS selectors and text matches), never code.
+
+1. A rule fix is a change to that file, as a pull request or a push to `main`.
+2. A GitHub Actions workflow validates the file, runs the tests, signs it with a private key that only exists as a repository secret, and publishes it to GitHub Pages.
+3. The app checks for the published file at most every 6 hours. It only accepts it if the signature matches a public key built into the app, so a compromised host cannot change what the app hides. A damaged, unsigned or older file is ignored and the previous rules stay.
+4. If the host is down or you are offline, the rules already on the phone keep working.
+
+Checking for rules shows your phone's IP address to GitHub and nothing else. See the [privacy policy](docs/PRIVACY.md). Settings, Rules shows where the rules came from and has a **Report a broken rule** button that opens a prefilled GitHub issue (versions only, no page content).
+
 ## Hosting your own rules server
 
-This is optional. Without it the app uses the rules built into it, which only change when you rebuild. With it, a site redesign is a one-file edit that reaches the phone without a rebuild.
+This is optional, for anyone who wants their own source of rules, for example to try changes at home before publishing them. In Settings, Rules, choose **Custom server** and enter the address. A custom server serves a plain rule pack and is not signature checked, because it is yours.
 
 The server is a small nginx container that serves one file, `rulepack.json`, and returns 404 for everything else. [`server/README.md`](server/README.md) has the setup for a NAS or any machine that runs Docker, and [`scripts/deploy-rules.sh`](scripts/deploy-rules.sh) validates and pushes a new pack over ssh. Then enter the address, for example `http://your-server:8787/rulepack.json`, in the app under Settings, Rules, Server address, and tap **Check now**.
 
@@ -70,7 +81,7 @@ Sites change their pages, so rules go stale. The app shows "rules may be stale" 
 2. Edit that site's entry in `rules/rulepack.json`: add a CSS selector to `hideSelectors`, or use `hideByText` when the class names are scrambled. Rules are plain data and never contain code.
 3. Bump `packVersion`. A pack is only accepted if its version is not lower than the one the app already has.
 4. Run `./scripts/verify.sh`. It validates the pack and runs the page tests.
-5. Either rebuild the app, or, if you host your own rules server, run `./scripts/deploy-rules.sh` and then tap **Check now** under Settings, Rules. See [`server/README.md`](server/README.md).
+5. Push to `main`. The workflow signs and publishes the new pack, and apps pick it up within about 6 hours (or when you tap **Check now** under Settings, Rules). To try a change first, use a custom server: run `./scripts/deploy-rules.sh` and see [`server/README.md`](server/README.md).
 
 ### Web Inspector
 

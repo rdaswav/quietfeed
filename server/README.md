@@ -1,7 +1,7 @@
 # Rules server
 
-A tiny nginx container on the NAS that serves `rulepack.json` on the home network.
-The app does not know about any server until you enter its address in Settings, under Rules, for example `http://<your-nas-ip>:8787/rulepack.json`. Until then it only uses the rules bundled in the app.
+A tiny nginx container that serves `rulepack.json` on your own network. This is for a **custom server**: the app's default source is the official, signed rules on GitHub Pages, and you only need this if you want your own source (for example to try rule changes at home before publishing them).
+In the app, choose Settings, Rules, Custom server and enter the address, for example `http://<your-nas-ip>:8787/rulepack.json`. A custom server serves a plain rule pack and is not signature checked.
 The pack is declarative JSON only, never code, because it travels over plain HTTP.
 
 ## One-time setup (run by hand, not by the build loop)

@@ -27,7 +27,7 @@ You need an iPhone on iOS 18 or later.
 
 - The mobile sites do less than the real apps: no push notifications, and some message extras such as voice notes and calls are missing.
 - Sites change their pages without warning, so a hidden section can come back. That is the most useful thing to report.
-- Limits and usage are per phone. Nothing is sent to anyone.
+- Limits and usage are per phone. Nothing about you is sent to anyone. The only thing the app asks for over the network is an updated file of hiding rules, so a rule fix can reach you without a new build.
 - If shielding of the official apps is in your build, it needs Screen Time access and you choose the apps yourself. You can switch it off in Settings, after a short wait.
 
 ## Reporting a problem
