@@ -11,6 +11,8 @@ struct SiteNav {
         /// A path on the site's own host. `nil` with `profile` set means "the signed-in profile".
         let path: String?
         var isProfile = false
+        /// For sites whose tabs are not links: the start of the tab's `aria-label`, pressed from code.
+        var tabLabel: String? = nil
         /// True when the current page path belongs to this tab.
         let matches: (String) -> Bool
 
@@ -51,6 +53,34 @@ struct SiteNav {
                 ],
                 probeSelector: "ytm-pivot-bar-renderer",
                 allowsProfile: false)
+        case "facebook":
+            // Facebook's tabs are `div[role=tab]` with an aria-label, not links. Reels, Friends and Marketplace are left out.
+            return SiteNav(
+                items: [
+                    Item(id: "home", label: "Home", symbol: "house", path: "/", tabLabel: "feed",
+                         matches: { $0 == "/" || $0 == "" }),
+                    Item(id: "messages", label: "Messages", symbol: "message", path: "/messages/", tabLabel: "messages",
+                         matches: { $0.hasPrefix("/messages") }),
+                    Item(id: "alerts", label: "Alerts", symbol: "bell", path: "/notifications/", tabLabel: "notifications",
+                         matches: { $0.hasPrefix("/notifications") }),
+                    Item(id: "profile", label: "Profile", symbol: "person.crop.circle", path: "/me",
+                         matches: { $0.hasPrefix("/me") || $0.hasPrefix("/profile") }),
+                ],
+                probeSelector: "[role=\"tablist\"] [role=\"tab\"][aria-label^=\"feed\"]",
+                allowsProfile: false)
+        case "tiktok":
+            // Discover, Live and the create button are left out. The site's own links carry data-e2e names.
+            return SiteNav(
+                items: [
+                    Item(id: "home", label: "Home", symbol: "house", path: "/",
+                         matches: { $0 == "/" || $0 == "" }),
+                    Item(id: "inbox", label: "Inbox", symbol: "tray", path: "/messages",
+                         matches: { $0.hasPrefix("/messages") }),
+                    Item(id: "profile", label: "Profile", symbol: "person.crop.circle", path: "/profile",
+                         matches: { $0.hasPrefix("/profile") || $0.hasPrefix("/@") }),
+                ],
+                probeSelector: "a[data-e2e=\"home-icon\"]",
+                allowsProfile: false)
         default:
             return nil
         }
@@ -79,6 +109,8 @@ struct SiteNav {
               el = el.parentElement;
             }
             if (!found && link.matches("ytm-pivot-bar-renderer")) found = link;
+            // Facebook's tabs sit in a plain tablist that scrolls with the page, not in a fixed bar.
+            if (!found) found = link.closest('[role="tablist"]');
             return found;
           }
           function run() {
@@ -89,7 +121,14 @@ struct SiteNav {
           }
           // Goes to a path the way a tap on the site's own link would, so the page swaps its content
           // without a full reload. Returns false when the page has no such link.
-          window.__qfGo = function (path) {
+          window.__qfGo = function (path, tab) {
+            if (tab) {
+              var tabs = document.querySelectorAll('[role="tab"]');
+              for (var i = 0; i < tabs.length; i++) {
+                var label = (tabs[i].getAttribute("aria-label") || "").toLowerCase();
+                if (label.indexOf(tab) === 0) { tabs[i].click(); return true; }
+              }
+            }
             var sel = 'a[href="' + path + '"]';
             var a = document.querySelector(sel);
             if (!a && path.length > 1) a = document.querySelector('a[href="' + path.replace(/\\/$/, "") + '"]');

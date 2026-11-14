@@ -20,13 +20,14 @@ final class BrowserController {
 
     /// Opens a path on the site's own host.
     /// Tries the page's own navigation first (no reload), and loads the URL only if the page has no such link.
-    func open(path: String, on site: SiteRules) {
+    func open(path: String, tab: String? = nil, on site: SiteRules) {
         #if DEBUG
         DebugEventLog.markNow()
         #endif
         guard let webView else { return }
         let quoted = path.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"")
-        webView.evaluateJavaScript("window.__qfGo ? window.__qfGo(\"\(quoted)\") : false") { [weak webView] result, _ in
+        let tabArg = tab.map { "\"\($0)\"" } ?? "null"
+        webView.evaluateJavaScript("window.__qfGo ? window.__qfGo(\"\(quoted)\", \(tabArg)) : false") { [weak webView] result, _ in
             #if DEBUG
             DebugEventLog.record(site.id, "tab \(path) via page link: \((result as? Bool) == true)")
             #endif
@@ -387,7 +388,7 @@ struct BrowserView: View {
                     if item.isProfile {
                         Task { await controller.openProfile() }
                     } else if let path = item.path {
-                        controller.open(path: path, on: site)
+                        controller.open(path: path, tab: item.tabLabel, on: site)
                     }
                 } label: {
                     VStack(spacing: 3) {
