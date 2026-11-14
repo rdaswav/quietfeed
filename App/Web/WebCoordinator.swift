@@ -113,6 +113,17 @@ final class WebCoordinator: NSObject, WKScriptMessageHandler, WKNavigationDelega
         let isMainFrame = navigationAction.targetFrame?.isMainFrame ?? true
         let outcome = NavigationPolicyMapper.outcome(
             for: URLPolicy.decide(url: url, site: site, isMainFrame: isMainFrame))
+        #if DEBUG
+        if isMainFrame {
+            switch outcome {
+            case .allow: DebugEventLog.record(site.id, "main allow \(DebugEventLog.path(url))")
+            case .cancel: DebugEventLog.record(site.id, "main cancel \(DebugEventLog.path(url))")
+            case .cancelAndOpenExternally: DebugEventLog.record(site.id, "main external \(url.host ?? "?")")
+            case .cancelAndLoad(let target):
+                DebugEventLog.record(site.id, "main REDIRECT \(DebugEventLog.path(url)) -> \(DebugEventLog.path(target))")
+            }
+        }
+        #endif
         switch outcome {
         case .cancelAndOpenExternally: openExternally(url)
         case .cancelAndLoad(let target): webView.load(URLRequest(url: target))
@@ -120,6 +131,24 @@ final class WebCoordinator: NSObject, WKScriptMessageHandler, WKNavigationDelega
         }
         decisionHandler(NavigationPolicyMapper.actionPolicy(for: outcome))
     }
+
+    /// The web process was killed, usually for memory. Without this the page stays blank until the next navigation.
+    func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+        #if DEBUG
+        DebugEventLog.record(site.id, "PROCESS TERMINATED, reloading \(DebugEventLog.path(webView.url))")
+        #endif
+        webView.reload()
+    }
+
+    #if DEBUG
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        DebugEventLog.record(site.id, "finished \(DebugEventLog.path(webView.url))")
+    }
+
+    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+        DebugEventLog.record(site.id, "failed \((error as NSError).code)")
+    }
+    #endif
 
     // MARK: UI delegate
 

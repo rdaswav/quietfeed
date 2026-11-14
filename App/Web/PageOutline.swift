@@ -76,9 +76,38 @@ enum PageOutline {
         for (var i = 0; i < el.children.length; i++) walk(el.children[i], depth + 1);
       }
       walk(document.body, 0);
+      // Cost of looking at every span and heading, the way the old text pass did, three times over.
+      var t0 = performance.now(), looked = 0;
+      for (var rep = 0; rep < 3; rep++) {
+        var all = document.querySelectorAll("span, h2, h3, h4");
+        for (var k = 0; k < all.length; k++) { looked++; (all[k].textContent || "").trim().toLowerCase(); }
+      }
+      var ms = performance.now() - t0;
+      // Which elements our rules hid, and how much of the page they cover.
+      var hiddenList = [];
+      var hs = document.querySelectorAll("[data-qf-hidden]");
+      for (var h = 0; h < hs.length && h < 20; h++) {
+        var he = hs[h], hr = he.getBoundingClientRect();
+        var depth = 0; for (var p = he; p.parentElement; p = p.parentElement) depth++;
+        hiddenList.push({ t: he.tagName.toLowerCase(), depth: depth, descendants: he.getElementsByTagName("*").length,
+          box: [r10(hr.top), r10(hr.left), r10(hr.width), r10(hr.height)],
+          parentTag: he.parentElement ? he.parentElement.tagName.toLowerCase() : null,
+          siblings: he.parentElement ? he.parentElement.children.length : 0 });
+      }
       return JSON.stringify({
         page: href(location.href), viewport: [innerWidth, innerHeight],
-        truncated: count >= MAX, nodes: out
+        truncated: count >= MAX,
+        stats: {
+          elements: document.getElementsByTagName("*").length,
+          spans: document.getElementsByTagName("span").length,
+          articles: document.getElementsByTagName("article").length,
+          videos: document.getElementsByTagName("video").length,
+          qfHidden: document.querySelectorAll("[data-qf-hidden]").length,
+          fullScanMs: Math.round(ms * 10) / 10, scanned: looked,
+          scrollY: Math.round(scrollY), docHeight: document.documentElement.scrollHeight,
+          hiddenElements: hiddenList
+        },
+        nodes: out
       });
     })()
     """#

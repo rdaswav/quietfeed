@@ -13,7 +13,7 @@ const fixture = (name) => readFileSync(join(root, "web", "fixtures", name), "utf
 const site = (id) => pack.sites.find((s) => s.id === id);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-function load({ siteId, html, url, config = {}, preHooks = {} }) {
+function load({ siteId, html, url, config = {}, preHooks = {}, disable = null }) {
   const dom = new JSDOM(fixture(html), { url, runScripts: "outside-only", pretendToBeVisual: true });
   const { window } = dom;
   const messages = [];
@@ -30,11 +30,17 @@ function load({ siteId, html, url, config = {}, preHooks = {} }) {
     ...config,
   };
   window.__QF_TEST__ = { ...preHooks };
+  if (disable) window.__QF_DISABLE__ = disable;
   window.eval(`window.__QF_CONFIG__ = ${JSON.stringify(cfg)};\n${runtimeSource}`);
   return { dom, window, document: window.document, messages, cfg };
 }
 
 const hidden = (window, el) => window.getComputedStyle(el).display === "none";
+// Posts found by text are collapsed, not removed from rendering (see runtime.js).
+const collapsed = (window, el) => {
+  const cs = window.getComputedStyle(el);
+  return cs.height === "0px" && cs.overflow === "hidden" && cs.display !== "none";
+};
 
 test("style element is created with all selectors", () => {
   const { document, cfg } = load({ siteId: "youtube", html: "youtube-home.html", url: "https://m.youtube.com/" });
@@ -44,6 +50,7 @@ test("style element is created with all selectors", () => {
   for (const sel of cfg.hideSelectors) assert.ok(style.textContent.includes(sel), sel);
   assert.ok(style.textContent.includes("[data-qf-hidden]"));
   assert.ok(style.textContent.includes("display: none !important"));
+  assert.ok(style.textContent.includes("[data-qf-hidden] { height: 0 !important"));
 });
 
 test("selectors hide the shelf and leave normal videos", () => {
@@ -58,10 +65,11 @@ test("text rule hides the right ancestor and only that one", async () => {
   await sleep(400);
   const suggested = document.getElementById("post-suggested");
   assert.equal(suggested.getAttribute("data-qf-hidden"), "1");
-  assert.ok(hidden(window, suggested));
+  assert.ok(collapsed(window, suggested));
   for (const id of ["post-1", "post-2"]) {
     assert.ok(!document.getElementById(id).hasAttribute("data-qf-hidden"), id);
     assert.ok(!hidden(window, document.getElementById(id)), id);
+    assert.ok(!collapsed(window, document.getElementById(id)), id);
   }
   assert.ok(!document.getElementById("canary-main").hasAttribute("data-qf-hidden"));
   assert.equal(document.querySelectorAll("[data-qf-hidden]").length, 1);
@@ -100,7 +108,7 @@ test("content added after load is hidden within 500 ms", async () => {
   await sleep(450);
   assert.ok(Date.now() - added < 500 + 100);
   assert.equal(art.getAttribute("data-qf-hidden"), "1");
-  assert.ok(hidden(window, art));
+  assert.ok(collapsed(window, art));
 });
 
 test("pushState to a blocked path triggers a redirect", () => {
@@ -179,4 +187,65 @@ test("running the script twice does nothing the second time", async () => {
   assert.deepEqual(replaced, ["/"], "redirect fires once, not twice");
   await sleep(150);
   assert.equal(messages.filter((m) => m.path === "/reels/").length, 1);
+});
+
+test("after the first pass only new content is looked at", async () => {
+  const { window, document } = load({ siteId: "instagram", html: "instagram-feed.html", url: "https://www.instagram.com/" });
+  const main = document.querySelector("main") || document.body;
+  const big = document.createElement("div");
+  big.innerHTML = Array.from({ length: 3000 }, (_, i) => `<div><span>post text ${i}</span></div>`).join("");
+  main.appendChild(big);
+  await sleep(500); // the first full pass has run
+  const art = document.createElement("article");
+  art.innerHTML = "<div><span>one new thing</span><span>another</span></div>";
+  main.appendChild(art);
+  await sleep(400); // the timed pass has run on the new content only
+  const examined = window.__QF_TEST__.lastExamined();
+  assert.ok(examined > 0 && examined < 30, `examined ${examined} elements, expected only the new ones`);
+});
+
+test("text changed in place is still caught", async () => {
+  const { document } = load({ siteId: "instagram", html: "instagram-feed.html", url: "https://www.instagram.com/" });
+  await sleep(400);
+  const art = document.createElement("article");
+  art.id = "edited";
+  art.innerHTML = "<div><span>nothing special</span></div>";
+  document.querySelector("main").appendChild(art);
+  await sleep(400);
+  assert.ok(!art.hasAttribute("data-qf-hidden"));
+  art.querySelector("span").firstChild.nodeValue = "Suggested for you";
+  await sleep(400);
+  assert.equal(art.getAttribute("data-qf-hidden"), "1");
+});
+
+test("debug switches turn parts of the script off", async () => {
+  const off = load({
+    siteId: "instagram", html: "instagram-feed.html", url: "https://www.instagram.com/",
+    disable: ["text", "style", "history", "health"],
+  });
+  await sleep(400);
+  assert.equal(off.document.querySelectorAll("[data-qf-hidden]").length, 0);
+  assert.equal(off.document.getElementById("qf-style"), null);
+  assert.equal(off.messages.length, 0);
+  const on = load({ siteId: "instagram", html: "instagram-feed.html", url: "https://www.instagram.com/" });
+  await sleep(400);
+  assert.ok(on.document.querySelectorAll("[data-qf-hidden]").length > 0);
+});
+
+test("a post found by text is collapsed but still rendered, and a selector hit is removed", async () => {
+  const { window, document } = load({ siteId: "instagram", html: "instagram-feed.html", url: "https://www.instagram.com/" });
+  await sleep(400);
+  const post = document.getElementById("post-suggested");
+  assert.equal(post.getAttribute("data-qf-hidden"), "1");
+  assert.ok(collapsed(window, post));
+  assert.ok(!hidden(window, post));
+  assert.ok(hidden(window, document.getElementById("nav-reels")));
+});
+
+test("a debug switch can bring back display none to compare", () => {
+  const dom = new JSDOM(fixture("instagram-feed.html"), { url: "https://www.instagram.com/", runScripts: "outside-only" });
+  dom.window.eval(`window.__QF_HIDE_MODE__ = "none"; window.__QF_CONFIG__ = ${JSON.stringify({
+    pathRules: [], hideSelectors: [], hideByText: [], canaries: [], healthDelayMs: 99999 })};\n${runtimeSource}`);
+  assert.ok(dom.window.document.getElementById("qf-style").textContent.includes("[data-qf-hidden] { display: none"));
+  dom.window.close();
 });

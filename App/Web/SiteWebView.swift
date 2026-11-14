@@ -23,9 +23,26 @@ enum SiteWebViewFactory {
         return text
     }
 
+    /// Debug builds only: `-qfDisable text,history` turns those parts of the injected script off
+    /// (style, history, text, health) so a misbehaving page can be bisected on a device.
+    private static var debugPrefix: String {
+        #if DEBUG
+        var prefix = ""
+        if let list = UserDefaults.standard.string(forKey: "qfDisable") {
+            let names = list.split(separator: ",").map { "\"\($0.filter { $0.isLetter })\"" }
+            prefix += "window.__QF_DISABLE__ = [\(names.joined(separator: ","))];\n"
+        }
+        if let mode = UserDefaults.standard.string(forKey: "qfHideMode") {
+            prefix += "window.__QF_HIDE_MODE__ = \"\(mode.filter { $0.isLetter })\";\n"
+        }
+        return prefix
+        #endif
+        return ""
+    }
+
     static func userScript(site: SiteRules, runtimeSource: String) -> WKUserScript {
         WKUserScript(
-            source: InjectionBuilder.script(for: site, runtimeSource: runtimeSource),
+            source: debugPrefix + InjectionBuilder.script(for: site, runtimeSource: runtimeSource),
             injectionTime: .atDocumentStart,
             forMainFrameOnly: true,
             in: .page

@@ -8,17 +8,31 @@
   var hideSelectors = cfg.hideSelectors || [];
   var hideByText = cfg.hideByText || [];
   var canaries = cfg.canaries || [];
+  // Debug builds can switch parts off to find which one upsets a page: style, history, text, health.
+  var off = window.__QF_DISABLE__ || [];
+  function disabled(name) { return off.indexOf(name) !== -1; }
   var PASS_INTERVAL_MS = 250;
   var HEALTH_DELAY_MS = typeof cfg.healthDelayMs === "number" ? cfg.healthDelayMs : 3000;
 
   // 1. Style: hide by selector from first paint.
   function installStyle() {
     var root = document.documentElement;
-    if (!root || document.getElementById("qf-style")) return;
+    if (disabled("style") || !root || document.getElementById("qf-style")) return;
     var style = document.createElement("style");
     style.id = "qf-style";
-    var sels = hideSelectors.concat(["[data-qf-hidden]"]);
-    style.textContent = sels.join(",\n") + " { display: none !important; }";
+    var css = "";
+    if (hideSelectors.length) css += hideSelectors.join(",\n") + " { display: none !important; }\n";
+    // Whole posts and bars found by text are collapsed to nothing but kept rendered. Taking them out of
+    // rendering with display: none made Instagram's feed lose its place and go blank on a real phone,
+    // while a zero height box that is still there did not (tested on an iPhone, 2026-11-14).
+    // A debug build can set window.__QF_HIDE_MODE__ = "none" to compare with the old behaviour.
+    if (window.__QF_HIDE_MODE__ === "none") {
+      css += "[data-qf-hidden] { display: none !important; }\n";
+    } else {
+      css += "[data-qf-hidden] { height: 0 !important; min-height: 0 !important; overflow: hidden !important;" +
+        " margin: 0 !important; padding: 0 !important; border: 0 !important; }\n";
+    }
+    style.textContent = css;
     root.appendChild(style);
   }
 
@@ -62,31 +76,82 @@
   }
 
   // 3. Text hiding.
+  // The first pass looks at the whole page. After that only content that was added or changed is
+  // looked at, so the cost follows what the page changes and not how long the feed has grown.
   var lastPass = 0;
   var passTimer = null;
+  var fullScan = true;
+  var pendingRoots = [];
+  var MAX_PENDING = 150;
+  var examined = 0;
+
+  var rules = hideByText.map(function (rule) {
+    return {
+      want: String(rule.text).trim().toLowerCase(),
+      within: rule.within || "span, h2, h3, h4",
+      closest: rule.closest
+    };
+  });
+
+  function checkElement(el, rule) {
+    examined++;
+    if ((el.textContent || "").trim().toLowerCase() !== rule.want) return;
+    var target;
+    try { target = el.closest(rule.closest); } catch (e) { target = null; }
+    if (target && !target.hasAttribute("data-qf-hidden")) target.setAttribute("data-qf-hidden", "1");
+  }
+
+  function scanRoot(root) {
+    for (var i = 0; i < rules.length; i++) {
+      var rule = rules[i];
+      var nodes;
+      try {
+        if (root.matches && root.matches(rule.within)) checkElement(root, rule);
+        nodes = root.querySelectorAll(rule.within);
+      } catch (e) { continue; }
+      for (var j = 0; j < nodes.length; j++) checkElement(nodes[j], rule);
+    }
+  }
 
   function runTextPass() {
     passTimer = null;
     lastPass = Date.now();
-    for (var i = 0; i < hideByText.length; i++) {
-      var rule = hideByText[i];
-      var want = String(rule.text).trim().toLowerCase();
-      var nodes;
-      try { nodes = document.querySelectorAll(rule.within || "span, h2, h3, h4"); } catch (e) { continue; }
-      for (var j = 0; j < nodes.length; j++) {
-        var el = nodes[j];
-        if ((el.textContent || "").trim().toLowerCase() !== want) continue;
-        var target;
-        try { target = el.closest(rule.closest); } catch (e) { target = null; }
-        if (target && !target.hasAttribute("data-qf-hidden")) target.setAttribute("data-qf-hidden", "1");
-      }
+    examined = 0;
+    var roots;
+    if (fullScan || pendingRoots.length > MAX_PENDING) {
+      roots = [document.documentElement];
+      fullScan = false;
+    } else {
+      roots = pendingRoots;
     }
+    pendingRoots = [];
+    for (var i = 0; i < roots.length; i++) {
+      var root = roots[i];
+      if (root && root.isConnected) scanRoot(root);
+    }
+    return examined;
   }
 
   function schedulePass() {
     if (passTimer !== null) return;
     var wait = Math.max(0, PASS_INTERVAL_MS - (Date.now() - lastPass));
     passTimer = setTimeout(runTextPass, wait);
+  }
+
+  function noteChanges(records) {
+    for (var i = 0; i < records.length; i++) {
+      var rec = records[i];
+      if (rec.type === "characterData") {
+        if (rec.target.parentElement) pendingRoots.push(rec.target.parentElement);
+        continue;
+      }
+      for (var j = 0; j < rec.addedNodes.length; j++) {
+        var n = rec.addedNodes[j];
+        var el = n.nodeType === 1 ? n : n.parentElement;
+        if (el) pendingRoots.push(el);
+      }
+    }
+    schedulePass();
   }
 
   // 4. Health.
@@ -109,6 +174,7 @@
   }
 
   function scheduleHealth() {
+    if (disabled("health")) return;
     if (healthTimer !== null) clearTimeout(healthTimer);
     healthTimer = setTimeout(sendHealth, HEALTH_DELAY_MS);
   }
@@ -123,7 +189,7 @@
   installStyle();
   checkPath();
 
-  ["pushState", "replaceState"].forEach(function (name) {
+  if (!disabled("history")) ["pushState", "replaceState"].forEach(function (name) {
     var orig = history[name];
     history[name] = function () {
       var r = orig.apply(this, arguments);
@@ -131,17 +197,20 @@
       return r;
     };
   });
-  window.addEventListener("popstate", onPathChange);
+  if (!disabled("history")) window.addEventListener("popstate", onPathChange);
 
-  if (document.documentElement) {
-    new MutationObserver(schedulePass).observe(document.documentElement, { childList: true, subtree: true });
+  if (!disabled("text") && document.documentElement) {
+    new MutationObserver(noteChanges).observe(document.documentElement, {
+      childList: true, subtree: true, characterData: true
+    });
   }
-  schedulePass();
+  if (!disabled("text")) schedulePass();
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", function () {
       installStyle();
-      schedulePass();
+      fullScan = true;
+      if (!disabled("text")) schedulePass();
       scheduleHealth();
     });
   } else {
@@ -152,7 +221,8 @@
   if (cfg.test === true) {
     var hooks = window.__QF_TEST__ || {};
     hooks.checkPath = checkPath;
-    hooks.runTextPass = runTextPass;
+    hooks.runTextPass = function () { fullScan = true; return runTextPass(); };
+    hooks.lastExamined = function () { return examined; };
     hooks.sendHealth = sendHealth;
     window.__QF_TEST__ = hooks;
   }
