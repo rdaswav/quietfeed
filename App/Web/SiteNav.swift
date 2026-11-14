@@ -87,6 +87,16 @@ struct SiteNav {
             window.__qfBar = b;
             b.style.setProperty("display", "none", "important");
           }
+          // Goes to a path the way a tap on the site's own link would, so the page swaps its content
+          // without a full reload. Returns false when the page has no such link.
+          window.__qfGo = function (path) {
+            var sel = 'a[href="' + path + '"]';
+            var a = document.querySelector(sel);
+            if (!a && path.length > 1) a = document.querySelector('a[href="' + path.replace(/\\/$/, "") + '"]');
+            if (!a) return false;
+            a.click();
+            return true;
+          };
           window.__qfOpenProfile = function () {
             var b = window.__qfBar;
             if (!b) return false;

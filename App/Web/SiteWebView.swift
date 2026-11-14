@@ -81,6 +81,49 @@ enum SiteWebViewFactory {
     }
 }
 
+/// Keeps each site's web view alive after you leave it, so coming back is instant rather than a fresh load.
+/// Costs some memory, so it is emptied on a memory warning, and a view left for a while reloads when it returns.
+@MainActor
+final class WebViewCache {
+    static let shared = WebViewCache()
+    /// Longer than this away and the feed is stale, so it reloads on return.
+    static let staleAfter: TimeInterval = 5 * 60
+
+    private struct Entry {
+        let webView: WKWebView
+        let coordinator: WebCoordinator
+        var leftAt: Date?
+    }
+    private var entries: [String: Entry] = [:]
+
+    private init() {
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.didReceiveMemoryWarningNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.entries.removeAll() }
+        }
+    }
+
+    func coordinator(for siteId: String) -> WebCoordinator? { entries[siteId]?.coordinator }
+
+    /// A kept web view, reloaded first if it has been away too long. `nil` when there is none.
+    func reuse(_ siteId: String) -> WKWebView? {
+        guard var entry = entries[siteId] else { return nil }
+        if let left = entry.leftAt, Date().timeIntervalSince(left) > Self.staleAfter {
+            entry.webView.reload()
+        }
+        entry.leftAt = nil
+        entries[siteId] = entry
+        return entry.webView
+    }
+
+    func store(_ webView: WKWebView, coordinator: WebCoordinator, for siteId: String) {
+        entries[siteId] = Entry(webView: webView, coordinator: coordinator, leftAt: nil)
+    }
+
+    func markLeft(_ siteId: String) { entries[siteId]?.leftAt = Date() }
+}
+
 struct SiteWebView: UIViewRepresentable {
     let site: SiteRules
     let runtimeSource: String
@@ -88,10 +131,18 @@ struct SiteWebView: UIViewRepresentable {
     let onHealth: (String, HealthReport) -> Void
 
     func makeCoordinator() -> WebCoordinator {
-        WebCoordinator(site: site, onHealth: onHealth)
+        WebViewCache.shared.coordinator(for: site.id) ?? WebCoordinator(site: site, onHealth: onHealth)
     }
 
     func makeUIView(context: Context) -> WKWebView {
+        if let kept = WebViewCache.shared.reuse(site.id) {
+            context.coordinator.onHealth = onHealth
+            controller?.webView = kept
+            #if DEBUG
+            DebugEventLog.record(site.id, "reuse kept web view")
+            #endif
+            return kept
+        }
         let webView = SiteWebViewFactory.makeWebView(
             site: site, runtimeSource: runtimeSource, messageHandler: context.coordinator)
         webView.navigationDelegate = context.coordinator
@@ -104,6 +155,7 @@ struct SiteWebView: UIViewRepresentable {
         webView.underPageBackgroundColor = UIColor(Theme.bg)
         webView.isOpaque = false
         controller?.webView = webView
+        WebViewCache.shared.store(webView, coordinator: context.coordinator, for: site.id)
         let homeURL = URL(string: site.homeURL)
         let site = site
         Task { @MainActor in

@@ -22,6 +22,11 @@ enum DebugEventLog {
         }
     }
 
+    /// Start of the interaction being timed: a navigation starting or a tab being tapped.
+    nonisolated(unsafe) static var mark = Date()
+    static func markNow() { mark = Date() }
+    static var sinceMark: String { "+\(Int(Date().timeIntervalSince(mark) * 1000)) ms" }
+
     static func path(_ url: URL?) -> String { url?.path ?? "?" }
 }
 #endif

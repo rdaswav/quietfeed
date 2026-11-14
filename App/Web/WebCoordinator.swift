@@ -94,6 +94,9 @@ final class WebCoordinator: NSObject, WKScriptMessageHandler, WKNavigationDelega
 
     func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
         guard message.name == "quietfeed", let report = HealthReport(body: message.body) else { return }
+        #if DEBUG
+        DebugEventLog.record(site.id, "health \(report.path) \(DebugEventLog.sinceMark)")
+        #endif
         onHealth(site.id, report)
     }
 
@@ -144,8 +147,17 @@ final class WebCoordinator: NSObject, WKScriptMessageHandler, WKNavigationDelega
     }
 
     #if DEBUG
+    func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
+        DebugEventLog.markNow()
+        DebugEventLog.record(site.id, "start \(DebugEventLog.path(webView.url))")
+    }
+
+    func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
+        DebugEventLog.record(site.id, "commit \(DebugEventLog.path(webView.url)) \(DebugEventLog.sinceMark)")
+    }
+
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        DebugEventLog.record(site.id, "finished \(DebugEventLog.path(webView.url))")
+        DebugEventLog.record(site.id, "finished \(DebugEventLog.path(webView.url)) \(DebugEventLog.sinceMark)")
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {

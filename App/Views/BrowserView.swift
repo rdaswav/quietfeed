@@ -19,9 +19,27 @@ final class BrowserController {
     var currentPath = ""
 
     /// Opens a path on the site's own host.
+    /// Tries the page's own navigation first (no reload), and loads the URL only if the page has no such link.
     func open(path: String, on site: SiteRules) {
-        guard let base = URL(string: site.homeURL), let url = URL(string: path, relativeTo: base) else { return }
-        webView?.load(URLRequest(url: url.absoluteURL))
+        #if DEBUG
+        DebugEventLog.markNow()
+        #endif
+        guard let webView else { return }
+        let quoted = path.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"")
+        webView.evaluateJavaScript("window.__qfGo ? window.__qfGo(\"\(quoted)\") : false") { [weak webView] result, _ in
+            #if DEBUG
+            DebugEventLog.record(site.id, "tab \(path) via page link: \((result as? Bool) == true)")
+            #endif
+            guard (result as? Bool) != true else { return }
+            guard let webView, let base = URL(string: site.homeURL),
+                  let url = URL(string: path, relativeTo: base) else { return }
+            webView.load(URLRequest(url: url.absoluteURL))
+        }
+    }
+
+    /// Stops sound and video before the screen is left, since the web view now stays alive.
+    func suspendMedia() {
+        webView?.evaluateJavaScript("document.querySelectorAll('video,audio').forEach(function(m){try{m.pause()}catch(e){}})")
     }
 
     /// Opens the signed-in profile by pressing the profile tab in the site's own (hidden) bar.
@@ -131,7 +149,13 @@ struct BrowserView: View {
         .onChange(of: isExhausted) { _, exhausted in
             if exhausted { UIImpactFeedbackGenerator(style: .soft).impactOccurred() }
         }
-        .onDisappear { model.flushUsage() }
+        .onDisappear {
+            model.flushUsage()
+            controller.suspendMedia()
+            WebViewCache.shared.markLeft(site.id)
+            // A filter pause only lives while this screen does, so put the filters back before leaving.
+            if pauseRemaining != nil { Task { await controller.resumeFilters(site) } }
+        }
         .sheet(item: $gate) { request in
             FrictionGate(
                 title: request.title,
