@@ -30,6 +30,7 @@ struct SettingsView: View {
             pendingSection
             limitsSection
             frictionSection
+            speedSection
             officialAppsSection
             rulesSection
             aboutSection
@@ -211,6 +212,22 @@ struct SettingsView: View {
                 }
             }
         )
+    }
+
+    private var speedSection: some View {
+        Section {
+            Toggle(isOn: Binding(get: { model.preloadFeeds }, set: { model.setPreloadFeeds($0) })) {
+                Text("Load feeds in the background").font(Theme.bodyFont).foregroundStyle(Theme.text)
+            }
+            .tint(Theme.accent)
+            .listRowBackground(Theme.surface)
+        } header: {
+            Text("Speed").sectionLabel()
+        } footer: {
+            Text("Loads each site when Quiet Feed opens, so it is ready when you tap it. Turn it off and a site is only contacted when you open it.")
+                .font(Theme.captionFont)
+                .foregroundStyle(Theme.textMuted)
+        }
     }
 
     private var officialAppsSection: some View {

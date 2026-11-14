@@ -156,6 +156,9 @@ final class WebViewCache {
         }
     }
 
+    /// Drops every kept web view, such as when background loading is switched off.
+    func clear() { entries.removeAll() }
+
     func markLeft(_ siteId: String) { entries[siteId]?.leftAt = Date() }
 }
 

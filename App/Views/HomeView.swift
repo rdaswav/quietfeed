@@ -38,7 +38,8 @@ struct HomeView: View {
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
-            .task {
+            .task(id: model.preloadFeeds) {
+                guard model.preloadFeeds else { return }
                 await WebViewCache.shared.warm(model.sites) { site in
                     if case .exhausted = model.budgetState(for: site.id) { return true }
                     return false

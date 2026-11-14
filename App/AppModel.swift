@@ -32,6 +32,8 @@ final class AppModel {
     private(set) var shieldVersion = 0
     /// Whether the user wants the official apps shielded. Needs Screen Time access and a chosen set of apps.
     private(set) var shieldEnabled: Bool
+    /// Whether Home loads each site in the background so the first open is quick. On by default.
+    private(set) var preloadFeeds: Bool
     /// True until the first-run pages have been finished or skipped.
     private(set) var showOnboarding: Bool
 
@@ -52,6 +54,7 @@ final class AppModel {
     @ObservationIgnored private let defaults: UserDefaults
     @ObservationIgnored let shield: ShieldController
     private static let shieldEnabledKey = "shield.enabled"
+    private static let preloadFeedsKey = "preload.feeds"
     private static let onboardingKey = "onboarding.done"
     private static let serverURLKey = "rules.serverURL"
     private static let lastAttemptKey = "rules.lastAttempt"
@@ -69,6 +72,7 @@ final class AppModel {
         self.defaults = defaults
         self.shield = shield ?? Self.makeShield()
         self.shieldEnabled = defaults.bool(forKey: Self.shieldEnabledKey)
+        self.preloadFeeds = defaults.object(forKey: Self.preloadFeedsKey) as? Bool ?? true
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-qfResetOnboarding") {
             defaults.removeObject(forKey: Self.onboardingKey)
@@ -103,6 +107,12 @@ final class AppModel {
     }
 
     // MARK: Health
+
+    @MainActor func setPreloadFeeds(_ on: Bool) {
+        preloadFeeds = on
+        defaults.set(on, forKey: Self.preloadFeedsKey)
+        if !on { WebViewCache.shared.clear() }
+    }
 
     func recordHealth(_ report: HealthReport, for siteId: String) {
         healthReports[siteId] = report
