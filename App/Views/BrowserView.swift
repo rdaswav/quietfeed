@@ -24,10 +24,9 @@ final class BrowserController {
         webView?.load(URLRequest(url: url.absoluteURL))
     }
 
-    /// Opens the signed-in profile, using the link the site's own bar held before it was hidden.
-    func openProfile(on site: SiteRules) async {
-        let href = try? await webView?.evaluateJavaScript("window.__qfProfileHref || ''") as? String
-        if let href, !href.isEmpty { open(path: href, on: site) }
+    /// Opens the signed-in profile by pressing the profile tab in the site's own (hidden) bar.
+    func openProfile() async {
+        _ = try? await webView?.evaluateJavaScript("window.__qfOpenProfile ? window.__qfOpenProfile() : false")
     }
 
     func reload() {
@@ -362,7 +361,7 @@ struct BrowserView: View {
                 let selected = item.matches(controller.currentPath)
                 Button {
                     if item.isProfile {
-                        Task { await controller.openProfile(on: site) }
+                        Task { await controller.openProfile() }
                     } else if let path = item.path {
                         controller.open(path: path, on: site)
                     }

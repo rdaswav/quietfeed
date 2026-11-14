@@ -56,7 +56,7 @@ struct SiteNav {
         }
     }
 
-    /// Script that finds the site's own tab bar and hides it, and remembers the profile link.
+    /// Script that finds the site's own tab bar and hides it. Its Profile tab is clicked from code, since it may not be a plain link.
     /// It runs at document end and again whenever the page changes, because these sites rebuild the bar.
     var hideScript: String {
         let probe = probeSelector.replacingOccurrences(of: "\\", with: "\\\\")
@@ -84,17 +84,23 @@ struct SiteNav {
           function run() {
             var b = bar();
             if (!b) return;
-            if (!window.__qfProfileHref) {
-              var links = b.querySelectorAll("a[href]");
-              for (var i = 0; i < links.length; i++) {
-                var h = links[i].getAttribute("href") || "";
-                if (h.charAt(0) === "/" && known.indexOf(h) < 0 && h.indexOf("/accounts") !== 0) {
-                  window.__qfProfileHref = h; break;
-                }
-              }
-            }
+            window.__qfBar = b;
             b.style.setProperty("display", "none", "important");
           }
+          window.__qfOpenProfile = function () {
+            var b = window.__qfBar;
+            if (!b) return false;
+            var items = b.querySelectorAll('a, [role="link"], [role="button"], button');
+            var pick = null;
+            for (var i = 0; i < items.length; i++) {
+              var img = items[i].querySelector("img");
+              if (img && /profile/i.test(img.getAttribute("alt") || "")) { pick = items[i]; break; }
+            }
+            if (!pick && items.length) pick = items[items.length - 1];
+            if (!pick) return false;
+            pick.click();
+            return true;
+          };
           var pending = false;
           new MutationObserver(function () {
             if (pending) return;
