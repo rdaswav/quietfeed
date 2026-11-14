@@ -38,6 +38,12 @@ struct HomeView: View {
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
+            .task {
+                await WebViewCache.shared.warm(model.sites) { site in
+                    if case .exhausted = model.budgetState(for: site.id) { return true }
+                    return false
+                }
+            }
             .sheet(isPresented: $postGate) {
                 FrictionGate(
                     title: "Open the official apps for \(AppModel.postModeMinutes) minutes?",

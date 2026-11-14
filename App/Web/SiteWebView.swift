@@ -117,8 +117,43 @@ final class WebViewCache {
         return entry.webView
     }
 
-    func store(_ webView: WKWebView, coordinator: WebCoordinator, for siteId: String) {
-        entries[siteId] = Entry(webView: webView, coordinator: coordinator, leftAt: nil)
+    /// Makes a web view for a site, stores it, and starts loading the home page.
+    func build(site: SiteRules, runtimeSource: String, coordinator: WebCoordinator, warmed: Bool = false) -> WKWebView {
+        let webView = SiteWebViewFactory.makeWebView(
+            site: site, runtimeSource: runtimeSource, messageHandler: coordinator)
+        webView.navigationDelegate = coordinator
+        webView.uiDelegate = coordinator
+        // The web view follows the system light or dark setting (never overridden), and everything around and
+        // behind the page uses the app background so overscroll and loading show no stray colour.
+        webView.overrideUserInterfaceStyle = .unspecified
+        webView.backgroundColor = UIColor(Theme.bg)
+        webView.scrollView.backgroundColor = UIColor(Theme.bg)
+        webView.underPageBackgroundColor = UIColor(Theme.bg)
+        webView.isOpaque = false
+        entries[site.id] = Entry(webView: webView, coordinator: coordinator, leftAt: warmed ? Date() : nil)
+        let homeURL = URL(string: site.homeURL)
+        Task { @MainActor in
+            // Content rules must be attached before the first load.
+            if let list = await ContentRuleCompiler.compile(site: site) {
+                webView.configuration.userContentController.add(list)
+            }
+            if let homeURL { webView.load(URLRequest(url: homeURL)) }
+        }
+        return webView
+    }
+
+    /// Loads each site's home page in the background, one at a time, so the first open is already
+    /// mostly loaded. Skips a site that is already kept or whose time for today is used up.
+    func warm(_ sites: [SiteRules], skip: (SiteRules) -> Bool) async {
+        let source = SiteWebViewFactory.runtimeSource()
+        for site in sites where entries[site.id] == nil && !skip(site) {
+            let coordinator = WebCoordinator(site: site, onHealth: { _, _ in })
+            _ = build(site: site, runtimeSource: source, coordinator: coordinator, warmed: true)
+            #if DEBUG
+            DebugEventLog.record(site.id, "warm start")
+            #endif
+            try? await Task.sleep(for: .seconds(2))
+        }
     }
 
     func markLeft(_ siteId: String) { entries[siteId]?.leftAt = Date() }
@@ -143,28 +178,9 @@ struct SiteWebView: UIViewRepresentable {
             #endif
             return kept
         }
-        let webView = SiteWebViewFactory.makeWebView(
-            site: site, runtimeSource: runtimeSource, messageHandler: context.coordinator)
-        webView.navigationDelegate = context.coordinator
-        webView.uiDelegate = context.coordinator
-        // The web view follows the system light or dark setting (never overridden), and everything around and
-        // behind the page uses the app background so overscroll and loading show no stray colour.
-        webView.overrideUserInterfaceStyle = .unspecified
-        webView.backgroundColor = UIColor(Theme.bg)
-        webView.scrollView.backgroundColor = UIColor(Theme.bg)
-        webView.underPageBackgroundColor = UIColor(Theme.bg)
-        webView.isOpaque = false
+        let webView = WebViewCache.shared.build(
+            site: site, runtimeSource: runtimeSource, coordinator: context.coordinator)
         controller?.webView = webView
-        WebViewCache.shared.store(webView, coordinator: context.coordinator, for: site.id)
-        let homeURL = URL(string: site.homeURL)
-        let site = site
-        Task { @MainActor in
-            // Content rules must be attached before the first load.
-            if let list = await ContentRuleCompiler.compile(site: site) {
-                webView.configuration.userContentController.add(list)
-            }
-            if let homeURL { webView.load(URLRequest(url: homeURL)) }
-        }
         return webView
     }
 
